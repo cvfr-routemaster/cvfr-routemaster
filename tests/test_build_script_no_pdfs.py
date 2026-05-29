@@ -308,6 +308,173 @@ def test_windows_readme_includes_simulator_use_disclaimer(
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# LICENSE coverage (AGPLv3 §4)
+# ---------------------------------------------------------------------------
+
+
+def test_windows_source_bundle_top_files_includes_license_and_requirements() -> None:
+    """AGPLv3 §4 obliges every copy of the program to "conspicuously
+    and appropriately publish on each copy an appropriate copyright
+    notice" and "keep intact all notices stating that this License
+    [...] apply to the code."
+
+    The source bundle therefore MUST include ``LICENSE`` at its top
+    level — every shipped ``.py`` file points readers back to that
+    file via the "see <http://www.gnu.org/licenses/>" line in the
+    per-file header, so the pointer would dangle otherwise.
+
+    Also pin ``requirements.txt`` (a deletion would break
+    ``py -m pip install -r requirements.txt`` for source recipients)
+    so a future refactor of this tuple has to consciously preserve
+    both files."""
+    from scripts import build_release
+
+    assert "LICENSE" in build_release.SOURCE_BUNDLE_TOP_FILES, (
+        "LICENSE must be in SOURCE_BUNDLE_TOP_FILES — AGPLv3 §4 "
+        "requires the license text to ship with every copy of the "
+        "program, source bundle included"
+    )
+    assert "requirements.txt" in build_release.SOURCE_BUNDLE_TOP_FILES, (
+        "requirements.txt must be in SOURCE_BUNDLE_TOP_FILES — "
+        "without it 'py -m pip install -r requirements.txt' breaks"
+    )
+
+
+def test_windows_build_script_defines_copy_license() -> None:
+    """The build script must expose a ``_copy_license`` step so the
+    release folder ships ``LICENSE`` next to the .exe. Renaming or
+    removing this function would silently drop the license file
+    from the binary distribution."""
+    from scripts import build_release
+
+    assert hasattr(build_release, "_copy_license"), (
+        "build_release.py must define _copy_license() — without it "
+        "the release folder ships no LICENSE next to the .exe, "
+        "violating AGPLv3 §4"
+    )
+
+
+def test_windows_build_script_main_calls_copy_license() -> None:
+    """``_copy_license()`` must be wired into ``main()`` at indent-4
+    so the pipeline actually runs it. Defining the function but
+    never calling it would be just as bad as not defining it."""
+    src = (
+        Path(__file__).parent.parent / "scripts" / "build_release.py"
+    ).read_text(encoding="utf-8")
+    assert "    _copy_license()" in src, (
+        "main() must call _copy_license() so LICENSE ends up in "
+        "release/ next to the .exe"
+    )
+
+
+def test_copy_license_writes_license_into_release_dir(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """End-to-end exercise of ``_copy_license``: with a stub repo
+    root that has a LICENSE file and an empty release dir, the
+    function must produce ``release/LICENSE`` byte-identical to
+    the source.
+
+    Uses a tiny stub-LICENSE rather than the real one so the test
+    does not depend on the AGPL text staying byte-stable across
+    future LICENSE edits (e.g. adding a co-author)."""
+    from scripts import build_release
+
+    fake_repo = tmp_path
+    fake_release = fake_repo / "release"
+    fake_release.mkdir()
+    stub_license = b"STUB LICENSE\nCopyright (C) 2026 Lev F.\n"
+    (fake_repo / "LICENSE").write_bytes(stub_license)
+
+    monkeypatch.setattr(build_release, "REPO_ROOT", fake_repo)
+    monkeypatch.setattr(build_release, "RELEASE_DIR", fake_release)
+
+    build_release._copy_license()
+
+    out = fake_release / "LICENSE"
+    assert out.is_file(), "release/LICENSE must exist after _copy_license"
+    assert out.read_bytes() == stub_license, (
+        "release/LICENSE must be byte-identical to repo-root LICENSE"
+    )
+
+
+def test_copy_license_fails_loud_if_repo_license_missing(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """If somebody deletes ``LICENSE`` from the repo root,
+    ``_copy_license`` must abort the build via ``sys.exit`` rather
+    than silently producing a release without a license file.
+    The whole point of having this step is to refuse to ship a
+    binary that violates AGPLv3 §4."""
+    from scripts import build_release
+
+    fake_repo = tmp_path
+    fake_release = fake_repo / "release"
+    fake_release.mkdir()
+    monkeypatch.setattr(build_release, "REPO_ROOT", fake_repo)
+    monkeypatch.setattr(build_release, "RELEASE_DIR", fake_release)
+
+    with pytest.raises(SystemExit) as excinfo:
+        build_release._copy_license()
+    assert excinfo.value.code == 1, (
+        "_copy_license must exit(1) when LICENSE is missing at "
+        "repo root — silent success here would be a serious "
+        "compliance bug"
+    )
+
+
+def test_windows_readme_listing_mentions_license_file(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """The friend-facing release README must list ``LICENSE`` in its
+    "What's in this folder" inventory. If we ship the file but
+    never tell the user it exists, recipients miss the most
+    important meta-document in the folder."""
+    from scripts import build_release
+
+    release_root = tmp_path / "release"
+    release_root.mkdir()
+    monkeypatch.setattr(build_release, "RELEASE_DIR", release_root)
+    monkeypatch.setattr(build_release, "REPO_ROOT", tmp_path)
+
+    build_release._write_readme()
+    text = (release_root / "README.txt").read_text(encoding="utf-8")
+    assert "LICENSE" in text, (
+        "release README must list LICENSE in the 'What's in this "
+        "folder' section so recipients know it's there"
+    )
+
+
+def test_source_bundle_readme_mentions_license_file() -> None:
+    """The README inside the source.zip must list ``LICENSE`` in
+    its inventory and direct readers to it from its License
+    section — same rationale as the release README test above,
+    mirrored for the source-bundle audience."""
+    from scripts import build_release
+
+    text = build_release._source_bundle_readme_text()
+    assert "LICENSE" in text, (
+        "source-bundle README must list LICENSE in its 'What's in "
+        "here' section"
+    )
+    # The License section in the bundle README should explicitly tell
+    # readers the full text is included as LICENSE at the top of the
+    # archive — not just point them to gnu.org.
+    assert "LICENSE at the top level" in text or "as LICENSE" in text, (
+        "source-bundle README License section must point at the "
+        "bundled LICENSE file, not only at the gnu.org URL"
+    )
+
+
+# ---------------------------------------------------------------------------
+# CAAI URL coverage
+# ---------------------------------------------------------------------------
+
+
 def test_caai_urls_in_chart_source_match_what_program_info_dialog_displays() -> None:
     """``chart_source.CAAI_CHART_URLS`` is the single source of
     truth; ``program_info_dialog.CAAI_CHART_URLS`` re-keys them
