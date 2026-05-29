@@ -1,0 +1,1992 @@
+{
+  "cache_format_version": 1,
+  "extractor_logic_version": 1,
+  "back_pdf": {
+    "path": "<repo-root>\\CVFR-BACK-PAGES-OCT-2025-UPD2.pdf",
+    "mtime_ns": 1777797103955812000,
+    "size": 202103
+  },
+  "source": "hybrid",
+  "records": [
+    {
+      "index": 1,
+      "code": "ZLHAV",
+      "name_he": "צומת להבים",
+      "reporting_type": "חובה",
+      "lat": 31.3725,
+      "lon": 34.79333333333333,
+      "lat_dms": "31° 22'21\" N",
+      "lon_dms": "34° 47'36\" E"
+    },
+    {
+      "index": 2,
+      "code": "ZMGID",
+      "name_he": "צומת מגידו",
+      "reporting_type": "חובה",
+      "lat": 32.57277777777778,
+      "lon": 35.191111111111105,
+      "lat_dms": "32° 34'22\" N",
+      "lon_dms": "35° 11'28\" E"
+    },
+    {
+      "index": 3,
+      "code": "ZMGEN",
+      "name_he": "צומת מגן",
+      "reporting_type": "חובה",
+      "lat": 31.29388888888889,
+      "lon": 34.43222222222222,
+      "lat_dms": "31° 17'38\" N",
+      "lon_dms": "34° 25'56\" E"
+    },
+    {
+      "index": 4,
+      "code": "NCSHN",
+      "name_he": "צומת נחשון",
+      "reporting_type": "חובה",
+      "lat": 31.815555555555555,
+      "lon": 34.91694444444444,
+      "lat_dms": "31° 48'56\" N",
+      "lon_dms": "34° 55'01\" E"
+    },
+    {
+      "index": 5,
+      "code": "ARRAD",
+      "name_he": "צומת ערד",
+      "reporting_type": "חובה",
+      "lat": 31.254444444444445,
+      "lon": 35.209722222222226,
+      "lat_dms": "31° 15'16\" N",
+      "lon_dms": "35° 12'35\" E"
+    },
+    {
+      "index": 6,
+      "code": "FRDIS",
+      "name_he": "צומת פורדיס",
+      "reporting_type": "דרישה",
+      "lat": 32.591944444444444,
+      "lon": 34.94638888888888,
+      "lat_dms": "32° 35'31\" N",
+      "lon_dms": "34° 56'47\" E"
+    },
+    {
+      "index": 7,
+      "code": "FAZEL",
+      "name_he": "צומת פצאל",
+      "reporting_type": "דרישה",
+      "lat": 32.04805555555556,
+      "lon": 35.463055555555556,
+      "lat_dms": "32° 02'53\" N",
+      "lon_dms": "35° 27'47\" E"
+    },
+    {
+      "index": 8,
+      "code": "ZZHOR",
+      "name_he": "צומת ציחור",
+      "reporting_type": "דרישה",
+      "lat": 30.276666666666667,
+      "lon": 35.019999999999996,
+      "lat_dms": "30° 16'36\" N",
+      "lon_dms": "35° 01'12\" E"
+    },
+    {
+      "index": 9,
+      "code": "ZAFIT",
+      "name_he": "צומת צפית",
+      "reporting_type": "דרישה",
+      "lat": 31.0425,
+      "lon": 35.19972222222222,
+      "lat_dms": "31° 02'33\" N",
+      "lon_dms": "35° 11'59\" E"
+    },
+    {
+      "index": 10,
+      "code": "KTORA",
+      "name_he": "צומת קטורה",
+      "reporting_type": "חובה",
+      "lat": 29.989444444444445,
+      "lon": 35.07638888888889,
+      "lat_dms": "29° 59'22\" N",
+      "lon_dms": "35° 04'35\" E"
+    },
+    {
+      "index": 11,
+      "code": "SOKET",
+      "name_he": "צומת שוקת",
+      "reporting_type": "חובה",
+      "lat": 31.3075,
+      "lon": 34.901111111111106,
+      "lat_dms": "31° 18'27\" N",
+      "lon_dms": "34° 54'04\" E"
+    },
+    {
+      "index": 12,
+      "code": "ZOFAR",
+      "name_he": "צופר",
+      "reporting_type": "חובה",
+      "lat": 30.559722222222224,
+      "lon": 35.18666666666666,
+      "lat_dms": "30° 33'35\" N",
+      "lon_dms": "35° 11'12\" E"
+    },
+    {
+      "index": 13,
+      "code": "TZHOT",
+      "name_he": "צלחות",
+      "reporting_type": "דרישה",
+      "lat": 31.30777777777778,
+      "lon": 34.52972222222222,
+      "lat_dms": "31° 18'28\" N",
+      "lon_dms": "34° 31'47\" E"
+    },
+    {
+      "index": 14,
+      "code": "ZALMN",
+      "name_he": "צלמון",
+      "reporting_type": "דרישה",
+      "lat": 32.85333333333333,
+      "lon": 35.41166666666666,
+      "lat_dms": "32° 51'12\" N",
+      "lon_dms": "35° 24'42\" E"
+    },
+    {
+      "index": 15,
+      "code": "NCITY",
+      "name_he": "צפון העיר",
+      "reporting_type": "חובה",
+      "lat": 31.2875,
+      "lon": 34.79138888888889,
+      "lat_dms": "31° 17'15\" N",
+      "lon_dms": "34° 47'29\" E"
+    },
+    {
+      "index": 16,
+      "code": "KNTRY",
+      "name_he": "קאנטרי קלאב",
+      "reporting_type": "חובה",
+      "lat": 32.14083333333333,
+      "lon": 34.80138888888889,
+      "lat_dms": "32° 08'27\" N",
+      "lon_dms": "34° 48'05\" E"
+    },
+    {
+      "index": 17,
+      "code": "KKDEM",
+      "name_he": "קדם",
+      "reporting_type": "ARP",
+      "lat": 31.262777777777778,
+      "lon": 34.650277777777774,
+      "lat_dms": "31° 15'46\" N",
+      "lon_dms": "34° 39'01\" E"
+    },
+    {
+      "index": 18,
+      "code": "KRYON",
+      "name_he": "קיריון",
+      "reporting_type": "חובה",
+      "lat": 32.843333333333334,
+      "lon": 35.08888888888889,
+      "lat_dms": "32° 50'36\" N",
+      "lon_dms": "35° 05'20\" E"
+    },
+    {
+      "index": 19,
+      "code": "CLORE",
+      "name_he": "קלור",
+      "reporting_type": "דרישה",
+      "lat": 32.05305555555555,
+      "lon": 34.73583333333333,
+      "lat_dms": "32° 03'11\" N",
+      "lon_dms": "34° 44'09\" E"
+    },
+    {
+      "index": 20,
+      "code": "LLKZ",
+      "name_he": "קציעות",
+      "reporting_type": "ARP",
+      "lat": 30.85888888888889,
+      "lon": 34.44361111111111,
+      "lat_dms": "30° 51'32\" N",
+      "lon_dms": "34° 26'37\" E"
+    },
+    {
+      "index": 21,
+      "code": "LLKS",
+      "name_he": "קרית שמונה",
+      "reporting_type": "ARP",
+      "lat": 33.211666666666666,
+      "lon": 35.59638888888889,
+      "lat_dms": "33° 12'42\" N",
+      "lon_dms": "35° 35'47\" E"
+    },
+    {
+      "index": 22,
+      "code": "LLIB",
+      "name_he": "ראש פינה",
+      "reporting_type": "ARP",
+      "lat": 32.980555555555554,
+      "lon": 35.57083333333334,
+      "lat_dms": "32° 58'50\" N",
+      "lon_dms": "35° 34'15\" E"
+    },
+    {
+      "index": 23,
+      "code": "LLRS",
+      "name_he": "ראשון לציון",
+      "reporting_type": "ARP",
+      "lat": 31.967499999999998,
+      "lon": 34.75361111111111,
+      "lat_dms": "31° 58'03\" N",
+      "lon_dms": "34° 45'13\" E"
+    },
+    {
+      "index": 24,
+      "code": "REVAH",
+      "name_he": "רווחה",
+      "reporting_type": "דרישה",
+      "lat": 31.644444444444446,
+      "lon": 34.73027777777778,
+      "lat_dms": "31° 38'40\" N",
+      "lon_dms": "34° 43'49\" E"
+    },
+    {
+      "index": 25,
+      "code": "ROKCH",
+      "name_he": "רוקח",
+      "reporting_type": "דרישה",
+      "lat": 32.1025,
+      "lon": 34.80361111111111,
+      "lat_dms": "32° 06'09\" N",
+      "lon_dms": "34° 48'13\" E"
+    },
+    {
+      "index": 26,
+      "code": "RIDNG",
+      "name_he": "רידינג",
+      "reporting_type": "דרישה",
+      "lat": 32.11027777777778,
+      "lon": 34.7625,
+      "lat_dms": "32° 06'37\" N",
+      "lon_dms": "34° 45'45\" E"
+    },
+    {
+      "index": 27,
+      "code": "LLRM",
+      "name_he": "רמון",
+      "reporting_type": "ARP",
+      "lat": 30.775,
+      "lon": 34.666666666666664,
+      "lat_dms": "30° 46'30\" N",
+      "lon_dms": "34° 40'00\" E"
+    },
+    {
+      "index": 28,
+      "code": "LLRD",
+      "name_he": "רמת דוד",
+      "reporting_type": "ARP",
+      "lat": 32.666666666666664,
+      "lon": 35.18333333333333,
+      "lat_dms": "32° 40'00\" N",
+      "lon_dms": "35° 11'00\" E"
+    },
+    {
+      "index": 29,
+      "code": "HOVAV",
+      "name_he": "רמת חובב",
+      "reporting_type": "חובה",
+      "lat": 31.135555555555555,
+      "lon": 34.805,
+      "lat_dms": "31° 08'08\" N",
+      "lon_dms": "34° 48'18\" E"
+    },
+    {
+      "index": 30,
+      "code": "ZRANA",
+      "name_he": "רעננה מרכז",
+      "reporting_type": "חובה",
+      "lat": 32.17722222222222,
+      "lon": 34.88777777777778,
+      "lat_dms": "32° 10'38\" N",
+      "lon_dms": "34° 53'16\" E"
+    },
+    {
+      "index": 31,
+      "code": "RANNO",
+      "name_he": "רעננה צפון",
+      "reporting_type": "חובה",
+      "lat": 32.19083333333333,
+      "lon": 34.888333333333335,
+      "lat_dms": "32° 11'27\" N",
+      "lon_dms": "34° 53'18\" E"
+    },
+    {
+      "index": 32,
+      "code": "SZION",
+      "name_he": "ציון",
+      "reporting_type": "דרישה",
+      "lat": 32.97944444444445,
+      "lon": 35.093333333333334,
+      "lat_dms": "32° 58'46\" N",
+      "lon_dms": "35° 05'36\" E"
+    },
+    {
+      "index": 33,
+      "code": "SEGEV",
+      "name_he": "שגב",
+      "reporting_type": "דרישה",
+      "lat": 32.861111111111114,
+      "lon": 35.2625,
+      "lat_dms": "32° 51'40\" N",
+      "lon_dms": "35° 15'45\" E"
+    },
+    {
+      "index": 34,
+      "code": "BOKER",
+      "name_he": "שדה בוקר",
+      "reporting_type": "חובה",
+      "lat": 30.875,
+      "lon": 34.78583333333333,
+      "lat_dms": "30° 52'30\" N",
+      "lon_dms": "34° 47'09\" E"
+    },
+    {
+      "index": 35,
+      "code": "SDTYM",
+      "name_he": "שדות ים",
+      "reporting_type": "חובה",
+      "lat": 32.49666666666667,
+      "lon": 34.885,
+      "lat_dms": "32° 29'48\" N",
+      "lon_dms": "34° 53'06\" E"
+    },
+    {
+      "index": 36,
+      "code": "SDROT",
+      "name_he": "שדרות",
+      "reporting_type": "חובה",
+      "lat": 31.506666666666668,
+      "lon": 34.58555555555556,
+      "lat_dms": "31° 30'24\" N",
+      "lon_dms": "34° 35'08\" E"
+    },
+    {
+      "index": 37,
+      "code": "SOVAL",
+      "name_he": "שובל",
+      "reporting_type": "חובה",
+      "lat": 31.411388888888887,
+      "lon": 34.74638888888889,
+      "lat_dms": "31° 24'41\" N",
+      "lon_dms": "34° 44'47\" E"
+    },
+    {
+      "index": 38,
+      "code": "SORES",
+      "name_he": "שורש",
+      "reporting_type": "חובה",
+      "lat": 31.799722222222226,
+      "lon": 35.07611111111112,
+      "lat_dms": "31° 47'59\" N",
+      "lon_dms": "35° 04'34\" E"
+    },
+    {
+      "index": 39,
+      "code": "SIZFN",
+      "name_he": "שזפון",
+      "reporting_type": "חובה",
+      "lat": 30.047500000000003,
+      "lon": 35.01444444444444,
+      "lat_dms": "30° 02'51\" N",
+      "lon_dms": "35° 00'52\" E"
+    },
+    {
+      "index": 40,
+      "code": "SHRUT",
+      "name_he": "שחרות",
+      "reporting_type": "חובה",
+      "lat": 29.907777777777778,
+      "lon": 35.00333333333333,
+      "lat_dms": "29° 54'28\" N",
+      "lon_dms": "35° 00'12\" E"
+    },
+    {
+      "index": 41,
+      "code": "SITIM",
+      "name_he": "שיטים",
+      "reporting_type": "דרישה",
+      "lat": 30.175833333333333,
+      "lon": 35.01444444444444,
+      "lat_dms": "30° 10'33\" N",
+      "lon_dms": "35° 00'52\" E"
+    },
+    {
+      "index": 42,
+      "code": "SMRAT",
+      "name_he": "שמרת",
+      "reporting_type": "דרישה",
+      "lat": 32.95166666666667,
+      "lon": 35.09,
+      "lat_dms": "32° 57'06\" N",
+      "lon_dms": "35° 05'24\" E"
+    },
+    {
+      "index": 43,
+      "code": "SHARG",
+      "name_he": "שער הגיא",
+      "reporting_type": "דרישה",
+      "lat": 31.81972222222222,
+      "lon": 35.02111111111111,
+      "lat_dms": "31° 49'11\" N",
+      "lon_dms": "35° 01'16\" E"
+    },
+    {
+      "index": 44,
+      "code": "SFAIM",
+      "name_he": "שפיים",
+      "reporting_type": "חובה",
+      "lat": 32.21055555555556,
+      "lon": 34.80722222222222,
+      "lat_dms": "32° 12'38\" N",
+      "lon_dms": "34° 48'26\" E"
+    },
+    {
+      "index": 45,
+      "code": "LLBS",
+      "name_he": "תימן",
+      "reporting_type": "ARP",
+      "lat": 31.286944444444448,
+      "lon": 34.72277777777778,
+      "lat_dms": "31° 17'13\" N",
+      "lon_dms": "34° 43'22\" E"
+    },
+    {
+      "index": 46,
+      "code": "ASKLN",
+      "name_he": "תל אשקלון",
+      "reporting_type": "דרישה",
+      "lat": 31.66638888888889,
+      "lon": 34.53916666666667,
+      "lat_dms": "31° 39'59\" N",
+      "lon_dms": "34° 32'21\" E"
+    },
+    {
+      "index": 47,
+      "code": "TYONA",
+      "name_he": "תל יונה",
+      "reporting_type": "חובה",
+      "lat": 32.00472222222222,
+      "lon": 34.727222222222224,
+      "lat_dms": "32° 00'17\" N",
+      "lon_dms": "34° 43'38\" E"
+    },
+    {
+      "index": 48,
+      "code": "LLEK",
+      "name_he": "תל נוף",
+      "reporting_type": "ARP",
+      "lat": 31.836666666666666,
+      "lon": 34.818333333333335,
+      "lat_dms": "31° 50'12\" N",
+      "lon_dms": "34° 49'06\" E"
+    },
+    {
+      "index": 49,
+      "code": "TARAD",
+      "name_he": "תל ערד",
+      "reporting_type": "דרישה",
+      "lat": 31.2775,
+      "lon": 35.12555555555556,
+      "lat_dms": "31° 16'39\" N",
+      "lon_dms": "35° 07'32\" E"
+    },
+    {
+      "index": 50,
+      "code": "YRIHO",
+      "name_he": "מצפה יריחו",
+      "reporting_type": "חובה",
+      "lat": 31.819444444444443,
+      "lon": 35.3875,
+      "lat_dms": "31° 49'10\" N",
+      "lon_dms": "35° 23'15\" E"
+    },
+    {
+      "index": 51,
+      "code": "SHALM",
+      "name_he": "מצפה שלם",
+      "reporting_type": "דרישה",
+      "lat": 31.558611111111112,
+      "lon": 35.402499999999996,
+      "lat_dms": "31° 33'31\" N",
+      "lon_dms": "35° 24'09\" E"
+    },
+    {
+      "index": 52,
+      "code": "MEHOL",
+      "name_he": "משולש חולות",
+      "reporting_type": "חובה",
+      "lat": 31.960833333333333,
+      "lon": 34.76416666666667,
+      "lat_dms": "31° 57'39\" N",
+      "lon_dms": "34° 45'51\" E"
+    },
+    {
+      "index": 53,
+      "code": "MINGV",
+      "name_he": "משמר הנגב",
+      "reporting_type": "דרישה",
+      "lat": 31.36888888888889,
+      "lon": 34.71277777777778,
+      "lat_dms": "31° 22'08\" N",
+      "lon_dms": "34° 42'46\" E"
+    },
+    {
+      "index": 54,
+      "code": "EMMEK",
+      "name_he": "משמר העמק",
+      "reporting_type": "דרישה",
+      "lat": 32.615,
+      "lon": 35.141666666666666,
+      "lat_dms": "32° 36'54\" N",
+      "lon_dms": "35° 08'30\" E"
+    },
+    {
+      "index": 55,
+      "code": "MESEK",
+      "name_he": "משק",
+      "reporting_type": "חובה",
+      "lat": 31.264722222222222,
+      "lon": 34.69972222222222,
+      "lat_dms": "31° 15'53\" N",
+      "lon_dms": "34° 41'59\" E"
+    },
+    {
+      "index": 56,
+      "code": "METAH",
+      "name_he": "מתח",
+      "reporting_type": "חובה",
+      "lat": 31.225555555555555,
+      "lon": 34.755,
+      "lat_dms": "31° 13'32\" N",
+      "lon_dms": "34° 45'18\" E"
+    },
+    {
+      "index": 57,
+      "code": "LLNV",
+      "name_he": "נבטים",
+      "reporting_type": "ARP",
+      "lat": 31.21333333333333,
+      "lon": 35.01833333333333,
+      "lat_dms": "31° 12'48\" N",
+      "lon_dms": "35° 01'06\" E"
+    },
+    {
+      "index": 58,
+      "code": "EITAN",
+      "name_he": "נווה איתן",
+      "reporting_type": "חובה",
+      "lat": 32.495555555555555,
+      "lon": 35.53361111111111,
+      "lat_dms": "32° 29'44\" N",
+      "lon_dms": "35° 32'01\" E"
+    },
+    {
+      "index": 59,
+      "code": "ZOHAR",
+      "name_he": "נווה זוהר",
+      "reporting_type": "חובה",
+      "lat": 31.15083333333333,
+      "lon": 35.3725,
+      "lat_dms": "31° 09'03\" N",
+      "lon_dms": "35° 22'21\" E"
+    },
+    {
+      "index": 60,
+      "code": "NAHLA",
+      "name_he": "נחלה",
+      "reporting_type": "דרישה",
+      "lat": 31.656388888888888,
+      "lon": 34.80916666666666,
+      "lat_dms": "31° 39'23\" N",
+      "lon_dms": "34° 48'33\" E"
+    },
+    {
+      "index": 61,
+      "code": "NTAIM",
+      "name_he": "נטעים",
+      "reporting_type": "חובה",
+      "lat": 31.94361111111111,
+      "lon": 34.780833333333334,
+      "lat_dms": "31° 56'37\" N",
+      "lon_dms": "34° 46'51\" E"
+    },
+    {
+      "index": 62,
+      "code": "NITZA",
+      "name_he": "ניצן",
+      "reporting_type": "חובה",
+      "lat": 31.724166666666665,
+      "lon": 34.57055555555556,
+      "lat_dms": "31° 43'27\" N",
+      "lon_dms": "34° 34'14\" E"
+    },
+    {
+      "index": 63,
+      "code": "NMASD",
+      "name_he": "נמל אשדוד",
+      "reporting_type": "חובה",
+      "lat": 31.833333333333332,
+      "lon": 34.625277777777775,
+      "lat_dms": "31° 50'00\" N",
+      "lon_dms": "34° 37'31\" E"
+    },
+    {
+      "index": 64,
+      "code": "NOAAM",
+      "name_he": "נעם",
+      "reporting_type": "חובה",
+      "lat": 31.57138888888889,
+      "lon": 34.77583333333333,
+      "lat_dms": "31° 34'17\" N",
+      "lon_dms": "34° 46'33\" E"
+    },
+    {
+      "index": 65,
+      "code": "NAAMA",
+      "name_he": "נעמה",
+      "reporting_type": "דרישה",
+      "lat": 31.90861111111111,
+      "lon": 35.462500000000006,
+      "lat_dms": "31° 54'31\" N",
+      "lon_dms": "35° 27'45\" E"
+    },
+    {
+      "index": 66,
+      "code": "SIRNI",
+      "name_he": "נצר סירני",
+      "reporting_type": "דרישה",
+      "lat": 31.928055555555556,
+      "lon": 34.830000000000005,
+      "lat_dms": "31° 55'41\" N",
+      "lon_dms": "34° 49'48\" E"
+    },
+    {
+      "index": 67,
+      "code": "NTVOT",
+      "name_he": "נתיבות",
+      "reporting_type": "דרישה",
+      "lat": 31.429166666666667,
+      "lon": 34.59916666666667,
+      "lat_dms": "31° 25'45\" N",
+      "lon_dms": "34° 35'57\" E"
+    },
+    {
+      "index": 68,
+      "code": "SUPER",
+      "name_he": "סופרלנד",
+      "reporting_type": "חובה",
+      "lat": 31.976388888888888,
+      "lon": 34.74166666666667,
+      "lat_dms": "31° 58'35\" N",
+      "lon_dms": "34° 44'30\" E"
+    },
+    {
+      "index": 69,
+      "code": "SIGAL",
+      "name_he": "סיגל",
+      "reporting_type": "חובה",
+      "lat": 31.195,
+      "lon": 34.29277777777778,
+      "lat_dms": "31° 11'42\" N",
+      "lon_dms": "34° 17'34\" E"
+    },
+    {
+      "index": 70,
+      "code": "SAMAR",
+      "name_he": "סמר",
+      "reporting_type": "חובה",
+      "lat": 29.83138888888889,
+      "lon": 35.02861111111111,
+      "lat_dms": "29° 49'53\" N",
+      "lon_dms": "35° 01'43\" E"
+    },
+    {
+      "index": 71,
+      "code": "SAHAR",
+      "name_he": "סער",
+      "reporting_type": "דרישה",
+      "lat": 32.295833333333334,
+      "lon": 34.75277777777778,
+      "lat_dms": "32° 17'45\" N",
+      "lon_dms": "34° 45'10\" E"
+    },
+    {
+      "index": 72,
+      "code": "LLOV",
+      "name_he": "עובדה",
+      "reporting_type": "ARP",
+      "lat": 29.935,
+      "lon": 34.94083333333333,
+      "lat_dms": "29° 56'06\" N",
+      "lon_dms": "34° 56'27\" E"
+    },
+    {
+      "index": 73,
+      "code": "OMMER",
+      "name_he": "עומר",
+      "reporting_type": "חובה",
+      "lat": 31.27472222222222,
+      "lon": 34.82833333333333,
+      "lat_dms": "31° 16'29\" N",
+      "lon_dms": "34° 49'42\" E"
+    },
+    {
+      "index": 74,
+      "code": "AZOOZ",
+      "name_he": "עזוז",
+      "reporting_type": "דרישה",
+      "lat": 30.8,
+      "lon": 34.47027777777778,
+      "lat_dms": "30° 48'00\" N",
+      "lon_dms": "34° 28'13\" E"
+    },
+    {
+      "index": 75,
+      "code": "ENGDI",
+      "name_he": "עין גדי",
+      "reporting_type": "חובה",
+      "lat": 31.464166666666667,
+      "lon": 35.39472222222222,
+      "lat_dms": "31° 27'51\" N",
+      "lon_dms": "35° 23'41\" E"
+    },
+    {
+      "index": 76,
+      "code": "LLEV",
+      "name_he": "עין ורד",
+      "reporting_type": "ARP",
+      "lat": 32.265,
+      "lon": 34.95166666666667,
+      "lat_dms": "32° 15'54\" N",
+      "lon_dms": "34° 57'06\" E"
+    },
+    {
+      "index": 77,
+      "code": "LLEY",
+      "name_he": "עין יהב",
+      "reporting_type": "ARP",
+      "lat": 30.621666666666666,
+      "lon": 35.20305555555556,
+      "lat_dms": "30° 37'18\" N",
+      "lon_dms": "35° 12'11\" E"
+    },
+    {
+      "index": 78,
+      "code": "ZURIM",
+      "name_he": "עין צורים",
+      "reporting_type": "חובה",
+      "lat": 31.701666666666664,
+      "lon": 34.715,
+      "lat_dms": "31° 42'06\" N",
+      "lon_dms": "34° 42'54\" E"
+    },
+    {
+      "index": 79,
+      "code": "LLES",
+      "name_he": "עין שמר",
+      "reporting_type": "ARP",
+      "lat": 32.44138888888889,
+      "lon": 35.00333333333333,
+      "lat_dms": "32° 26'29\" N",
+      "lon_dms": "35° 00'12\" E"
+    },
+    {
+      "index": 80,
+      "code": "ZUKIM",
+      "name_he": "עינות צוקים",
+      "reporting_type": "חובה",
+      "lat": 31.71611111111111,
+      "lon": 35.44972222222222,
+      "lat_dms": "31° 42'58\" N",
+      "lon_dms": "35° 26'59\" E"
+    },
+    {
+      "index": 81,
+      "code": "EIRON",
+      "name_he": "יכין עירון",
+      "reporting_type": "דרישה",
+      "lat": 32.48083333333334,
+      "lon": 35.02444444444444,
+      "lat_dms": "32° 28'51\" N",
+      "lon_dms": "35° 01'28\" E"
+    },
+    {
+      "index": 82,
+      "code": "AAKKO",
+      "name_he": "עכו",
+      "reporting_type": "חובה",
+      "lat": 32.91861111111111,
+      "lon": 35.09638888888889,
+      "lat_dms": "32° 55'07\" N",
+      "lon_dms": "35° 05'47\" E"
+    },
+    {
+      "index": 83,
+      "code": "AMIOZ",
+      "name_he": "עמיעוז",
+      "reporting_type": "דרישה",
+      "lat": 31.256666666666668,
+      "lon": 34.40277777777778,
+      "lat_dms": "31° 15'24\" N",
+      "lon_dms": "34° 24'10\" E"
+    },
+    {
+      "index": 84,
+      "code": "ANATA",
+      "name_he": "ענאתא",
+      "reporting_type": "חובה",
+      "lat": 31.82111111111111,
+      "lon": 35.271388888888886,
+      "lat_dms": "31° 49'16\" N",
+      "lon_dms": "35° 16'17\" E"
+    },
+    {
+      "index": 85,
+      "code": "AFULA",
+      "name_he": "עפולה",
+      "reporting_type": "חובה",
+      "lat": 32.603611111111114,
+      "lon": 35.28194444444444,
+      "lat_dms": "32° 36'13\" N",
+      "lon_dms": "35° 16'55\" E"
+    },
+    {
+      "index": 86,
+      "code": "LLFK",
+      "name_he": "פיק",
+      "reporting_type": "ARP",
+      "lat": 32.78527777777778,
+      "lon": 35.717222222222226,
+      "lat_dms": "32° 47'07\" N",
+      "lon_dms": "35° 43'02\" E"
+    },
+    {
+      "index": 87,
+      "code": "PELEG",
+      "name_he": "פלג",
+      "reporting_type": "דרישה",
+      "lat": 32.330000000000005,
+      "lon": 34.83722222222222,
+      "lat_dms": "32° 19'48\" N",
+      "lon_dms": "34° 50'14\" E"
+    },
+    {
+      "index": 88,
+      "code": "LLPL",
+      "name_he": "פלמחים",
+      "reporting_type": "ARP",
+      "lat": 31.898333333333333,
+      "lon": 34.69,
+      "lat_dms": "31° 53'54\" N",
+      "lon_dms": "34° 41'24\" E"
+    },
+    {
+      "index": 89,
+      "code": "PARDS",
+      "name_he": "פרדס",
+      "reporting_type": "חובה",
+      "lat": 32.10277777777778,
+      "lon": 34.84777777777778,
+      "lat_dms": "32° 06'10\" N",
+      "lon_dms": "34° 50'52\" E"
+    },
+    {
+      "index": 90,
+      "code": "ZDAFA",
+      "name_he": "צדפה",
+      "reporting_type": "חובה",
+      "lat": 31.781666666666666,
+      "lon": 34.599722222222226,
+      "lat_dms": "31° 46'54\" N",
+      "lon_dms": "34° 35'59\" E"
+    },
+    {
+      "index": 91,
+      "code": "ZASHD",
+      "name_he": "צומת אשדוד",
+      "reporting_type": "חובה",
+      "lat": 31.82611111111111,
+      "lon": 34.708333333333336,
+      "lat_dms": "31° 49'34\" N",
+      "lon_dms": "34° 42'30\" E"
+    },
+    {
+      "index": 92,
+      "code": "NEGEV",
+      "name_he": "צומת הנגב",
+      "reporting_type": "דרישה",
+      "lat": 31.066111111111113,
+      "lon": 34.838055555555556,
+      "lat_dms": "31° 03'58\" N",
+      "lon_dms": "34° 50'17\" E"
+    },
+    {
+      "index": 93,
+      "code": "ARAVA",
+      "name_he": "צומת הערבה",
+      "reporting_type": "דרישה",
+      "lat": 30.989444444444445,
+      "lon": 35.30916666666666,
+      "lat_dms": "30° 59'22\" N",
+      "lon_dms": "35° 18'33\" E"
+    },
+    {
+      "index": 94,
+      "code": "RUHOT",
+      "name_he": "צומת הרוחות",
+      "reporting_type": "חובה",
+      "lat": 30.66,
+      "lon": 34.80888888888889,
+      "lat_dms": "30° 39'36\" N",
+      "lon_dms": "34° 48'32\" E"
+    },
+    {
+      "index": 95,
+      "code": "SHARO",
+      "name_he": "צומת השרון",
+      "reporting_type": "דרישה",
+      "lat": 32.323055555555555,
+      "lon": 34.903888888888886,
+      "lat_dms": "32° 19'23\" N",
+      "lon_dms": "34° 54'14\" E"
+    },
+    {
+      "index": 96,
+      "code": "HATRU",
+      "name_he": "צומת חתרורים",
+      "reporting_type": "חובה",
+      "lat": 31.218888888888888,
+      "lon": 35.248333333333335,
+      "lat_dms": "31° 13'08\" N",
+      "lon_dms": "35° 14'54\" E"
+    },
+    {
+      "index": 97,
+      "code": "ZYAAR",
+      "name_he": "צומת יער",
+      "reporting_type": "חובה",
+      "lat": 32.40972222222222,
+      "lon": 34.90361111111111,
+      "lat_dms": "32° 24'35\" N",
+      "lon_dms": "34° 54'13\" E"
+    },
+    {
+      "index": 98,
+      "code": "KANOT",
+      "name_he": "צומת כנות",
+      "reporting_type": "חובה",
+      "lat": 31.804166666666667,
+      "lon": 34.763333333333335,
+      "lat_dms": "31° 48'15\" N",
+      "lon_dms": "34° 45'48\" E"
+    },
+    {
+      "index": 99,
+      "code": "BEREC",
+      "name_he": "הר ברך",
+      "reporting_type": "חובה",
+      "lat": 29.793055555555558,
+      "lon": 34.91027777777778,
+      "lat_dms": "29° 47'35\" N",
+      "lon_dms": "34° 54'37\" E"
+    },
+    {
+      "index": 100,
+      "code": "HRGVS",
+      "name_he": "הר גבס",
+      "reporting_type": "דרישה",
+      "lat": 30.622777777777777,
+      "lon": 34.95,
+      "lat_dms": "30° 37'22\" N",
+      "lon_dms": "34° 57'00\" E"
+    },
+    {
+      "index": 101,
+      "code": "LLHZ",
+      "name_he": "הרצליה",
+      "reporting_type": "ARP",
+      "lat": 32.17944444444444,
+      "lon": 34.83444444444444,
+      "lat_dms": "32° 10'46\" N",
+      "lon_dms": "34° 50'04\" E"
+    },
+    {
+      "index": 102,
+      "code": "VINGT",
+      "name_he": "וינגייט",
+      "reporting_type": "דרישה",
+      "lat": 32.25555555555555,
+      "lon": 34.816944444444445,
+      "lat_dms": "32° 15'20\" N",
+      "lon_dms": "34° 49'01\" E"
+    },
+    {
+      "index": 103,
+      "code": "ZHRYA",
+      "name_he": "זכריה",
+      "reporting_type": "דרישה",
+      "lat": 31.699722222222224,
+      "lon": 34.94499999999999,
+      "lat_dms": "31° 41'59\" N",
+      "lon_dms": "34° 56'42\" E"
+    },
+    {
+      "index": 104,
+      "code": "HADRA",
+      "name_he": "חדרה",
+      "reporting_type": "חובה",
+      "lat": 32.46472222222223,
+      "lon": 34.91222222222222,
+      "lat_dms": "32° 27'53\" N",
+      "lon_dms": "34° 54'44\" E"
+    },
+    {
+      "index": 105,
+      "code": "HOLOT",
+      "name_he": "חולות",
+      "reporting_type": "דרישה",
+      "lat": 30.99416666666667,
+      "lon": 34.36027777777778,
+      "lat_dms": "30° 59'39\" N",
+      "lon_dms": "34° 21'37\" E"
+    },
+    {
+      "index": 106,
+      "code": "HULAT",
+      "name_he": "חולתה",
+      "reporting_type": "חובה",
+      "lat": 33.04361111111111,
+      "lon": 35.629444444444445,
+      "lat_dms": "33° 02'37\" N",
+      "lon_dms": "35° 37'46\" E"
+    },
+    {
+      "index": 107,
+      "code": "OVDAT",
+      "name_he": "חורבות עבדת",
+      "reporting_type": "חובה",
+      "lat": 30.802777777777777,
+      "lon": 34.79333333333333,
+      "lat_dms": "30° 48'10\" N",
+      "lon_dms": "34° 47'36\" E"
+    },
+    {
+      "index": 108,
+      "code": "LLHA",
+      "name_he": "חיפה",
+      "reporting_type": "ARP",
+      "lat": 32.80833333333333,
+      "lon": 35.04277777777778,
+      "lat_dms": "32° 48'30\" N",
+      "lon_dms": "35° 02'34\" E"
+    },
+    {
+      "index": 109,
+      "code": "HAZVA",
+      "name_he": "חצבה",
+      "reporting_type": "דרישה",
+      "lat": 30.773333333333333,
+      "lon": 35.23638888888889,
+      "lat_dms": "30° 46'24\" N",
+      "lon_dms": "35° 14'11\" E"
+    },
+    {
+      "index": 110,
+      "code": "LLHS",
+      "name_he": "חצור",
+      "reporting_type": "ARP",
+      "lat": 31.75777777777778,
+      "lon": 34.723055555555554,
+      "lat_dms": "31° 45'28\" N",
+      "lon_dms": "34° 43'23\" E"
+    },
+    {
+      "index": 111,
+      "code": "LLHB",
+      "name_he": "חצרים",
+      "reporting_type": "ARP",
+      "lat": 31.243333333333336,
+      "lon": 34.655,
+      "lat_dms": "31° 14'36\" N",
+      "lon_dms": "34° 39'18\" E"
+    },
+    {
+      "index": 112,
+      "code": "TIRAT",
+      "name_he": "טירת צבי",
+      "reporting_type": "דרישה",
+      "lat": 32.42444444444444,
+      "lon": 35.526666666666664,
+      "lat_dms": "32° 25'28\" N",
+      "lon_dms": "35° 31'36\" E"
+    },
+    {
+      "index": 113,
+      "code": "TLLIM",
+      "name_he": "טללים",
+      "reporting_type": "דרישה",
+      "lat": 30.990555555555556,
+      "lon": 34.76222222222222,
+      "lat_dms": "30° 59'26\" N",
+      "lon_dms": "34° 45'44\" E"
+    },
+    {
+      "index": 114,
+      "code": "YAVNE",
+      "name_he": "יבנה מזרח",
+      "reporting_type": "דרישה",
+      "lat": 31.871944444444445,
+      "lon": 34.75694444444444,
+      "lat_dms": "31° 52'19\" N",
+      "lon_dms": "34° 45'25\" E"
+    },
+    {
+      "index": 115,
+      "code": "YAHEL",
+      "name_he": "יהל",
+      "reporting_type": "דרישה",
+      "lat": 30.08222222222222,
+      "lon": 35.13333333333333,
+      "lat_dms": "30° 04'56\" N",
+      "lon_dms": "35° 08'00\" E"
+    },
+    {
+      "index": 116,
+      "code": "YOTVT",
+      "name_he": "יטבתה",
+      "reporting_type": "דרישה",
+      "lat": 29.90083333333333,
+      "lon": 35.06722222222223,
+      "lat_dms": "29° 54'03\" N",
+      "lon_dms": "35° 04'02\" E"
+    },
+    {
+      "index": 117,
+      "code": "YASDD",
+      "name_he": "ים אשדוד",
+      "reporting_type": "דרישה",
+      "lat": 31.810277777777777,
+      "lon": 34.45638888888889,
+      "lat_dms": "31° 48'37\" N",
+      "lon_dms": "34° 27'23\" E"
+    },
+    {
+      "index": 118,
+      "code": "YAHOL",
+      "name_he": "ים חולון",
+      "reporting_type": "דרישה",
+      "lat": 32.0225,
+      "lon": 34.46055555555556,
+      "lat_dms": "32° 01'21\" N",
+      "lon_dms": "34° 27'38\" E"
+    },
+    {
+      "index": 119,
+      "code": "YAPAL",
+      "name_he": "ים פלמחים",
+      "reporting_type": "חובה",
+      "lat": 31.915,
+      "lon": 34.458333333333336,
+      "lat_dms": "31° 54'54\" N",
+      "lon_dms": "34° 27'30\" E"
+    },
+    {
+      "index": 120,
+      "code": "YASFA",
+      "name_he": "ים שפיים",
+      "reporting_type": "דרישה",
+      "lat": 32.218611111111116,
+      "lon": 34.624722222222225,
+      "lat_dms": "32° 13'07\" N",
+      "lon_dms": "34° 37'29\" E"
+    },
+    {
+      "index": 121,
+      "code": "YRUHM",
+      "name_he": "ירוחם",
+      "reporting_type": "דרישה",
+      "lat": 30.989722222222223,
+      "lon": 34.91083333333333,
+      "lat_dms": "30° 59'23\" N",
+      "lon_dms": "34° 54'39\" E"
+    },
+    {
+      "index": 122,
+      "code": "YATED",
+      "name_he": "יתד",
+      "reporting_type": "דרישה",
+      "lat": 31.204722222222223,
+      "lon": 34.33444444444444,
+      "lat_dms": "31° 12'17\" N",
+      "lon_dms": "34° 20'04\" E"
+    },
+    {
+      "index": 123,
+      "code": "KUVSH",
+      "name_he": "כובשים",
+      "reporting_type": "חובה",
+      "lat": 31.25861111111111,
+      "lon": 34.76361111111111,
+      "lat_dms": "31° 15'31\" N",
+      "lon_dms": "34° 45'49\" E"
+    },
+    {
+      "index": 124,
+      "code": "KOYAR",
+      "name_he": "כוכב הירדן",
+      "reporting_type": "דרישה",
+      "lat": 32.597500000000004,
+      "lon": 35.54361111111111,
+      "lat_dms": "32° 35'51\" N",
+      "lon_dms": "35° 32'37\" E"
+    },
+    {
+      "index": 125,
+      "code": "SHAHR",
+      "name_he": "כוכב השחר",
+      "reporting_type": "דרישה",
+      "lat": 31.9575,
+      "lon": 35.33694444444445,
+      "lat_dms": "31° 57'27\" N",
+      "lon_dms": "35° 20'13\" E"
+    },
+    {
+      "index": 126,
+      "code": "DUMIM",
+      "name_he": "כפר אדומים",
+      "reporting_type": "דרישה",
+      "lat": 31.80388888888889,
+      "lon": 35.32472222222223,
+      "lat_dms": "31° 48'14\" N",
+      "lon_dms": "35° 19'29\" E"
+    },
+    {
+      "index": 127,
+      "code": "NAGID",
+      "name_he": "כפר הנגיד",
+      "reporting_type": "דרישה",
+      "lat": 31.889722222222222,
+      "lon": 34.755833333333335,
+      "lat_dms": "31° 53'23\" N",
+      "lon_dms": "34° 45'21\" E"
+    },
+    {
+      "index": 128,
+      "code": "HASID",
+      "name_he": "כפר חסידים",
+      "reporting_type": "חובה",
+      "lat": 32.74666666666667,
+      "lon": 35.07777777777778,
+      "lat_dms": "32° 44'48\" N",
+      "lon_dms": "35° 04'40\" E"
+    },
+    {
+      "index": 129,
+      "code": "HAROV",
+      "name_he": "כפר חרוב",
+      "reporting_type": "חובה",
+      "lat": 32.759166666666665,
+      "lon": 35.66833333333333,
+      "lat_dms": "32° 45'33\" N",
+      "lon_dms": "35° 40'06\" E"
+    },
+    {
+      "index": 130,
+      "code": "NAHEM",
+      "name_he": "כפר מנחם",
+      "reporting_type": "דרישה",
+      "lat": 31.74527777777778,
+      "lon": 34.82222222222222,
+      "lat_dms": "31° 44'43\" N",
+      "lon_dms": "34° 49'20\" E"
+    },
+    {
+      "index": 131,
+      "code": "TAVOR",
+      "name_he": "כפר תבור",
+      "reporting_type": "דרישה",
+      "lat": 32.69027777777777,
+      "lon": 35.419999999999995,
+      "lat_dms": "32° 41'25\" N",
+      "lon_dms": "35° 25'12\" E"
+    },
+    {
+      "index": 132,
+      "code": "DESHE",
+      "name_he": "כרי דשא",
+      "reporting_type": "חובה",
+      "lat": 32.87,
+      "lon": 35.5325,
+      "lat_dms": "32° 52'12\" N",
+      "lon_dms": "35° 31'57\" E"
+    },
+    {
+      "index": 133,
+      "code": "LAHAV",
+      "name_he": "להב",
+      "reporting_type": "דרישה",
+      "lat": 31.3825,
+      "lon": 34.82694444444445,
+      "lat_dms": "31° 22'57\" N",
+      "lon_dms": "34° 49'37\" E"
+    },
+    {
+      "index": 134,
+      "code": "BASAN",
+      "name_he": "להבות הבשן",
+      "reporting_type": "חובה",
+      "lat": 33.14611111111111,
+      "lon": 35.63805555555555,
+      "lat_dms": "33° 08'46\" N",
+      "lon_dms": "35° 38'17\" E"
+    },
+    {
+      "index": 135,
+      "code": "LTRUN",
+      "name_he": "לטרון",
+      "reporting_type": "דרישה",
+      "lat": 31.83861111111111,
+      "lon": 34.986666666666665,
+      "lat_dms": "31° 50'19\" N",
+      "lon_dms": "34° 59'12\" E"
+    },
+    {
+      "index": 136,
+      "code": "LIAAD",
+      "name_he": "ליעד",
+      "reporting_type": "חובה",
+      "lat": 31.958333333333332,
+      "lon": 34.515,
+      "lat_dms": "31° 57'30\" N",
+      "lon_dms": "34° 30'54\" E"
+    },
+    {
+      "index": 137,
+      "code": "LLMG",
+      "name_he": "מגידו",
+      "reporting_type": "ARP",
+      "lat": 32.59722222222222,
+      "lon": 35.234722222222224,
+      "lat_dms": "32° 35'50\" N",
+      "lon_dms": "35° 14'05\" E"
+    },
+    {
+      "index": 138,
+      "code": "MMORR",
+      "name_he": "מור",
+      "reporting_type": "דרישה",
+      "lat": 31.254444444444445,
+      "lon": 35.36833333333333,
+      "lat_dms": "31° 15'16\" N",
+      "lon_dms": "35° 22'06\" E"
+    },
+    {
+      "index": 139,
+      "code": "NIZAN",
+      "name_he": "מזלג ניצנה",
+      "reporting_type": "חובה",
+      "lat": 30.754444444444445,
+      "lon": 34.565,
+      "lat_dms": "30° 45'16\" N",
+      "lon_dms": "34° 33'54\" E"
+    },
+    {
+      "index": 140,
+      "code": "DAROM",
+      "name_he": "מחלף דרום",
+      "reporting_type": "חובה",
+      "lat": 32.79611111111111,
+      "lon": 34.94333333333333,
+      "lat_dms": "32° 47'46\" N",
+      "lon_dms": "34° 56'36\" E"
+    },
+    {
+      "index": 141,
+      "code": "HAREL",
+      "name_he": "מחלף הראל",
+      "reporting_type": "דרישה",
+      "lat": 31.798611111111114,
+      "lon": 35.14611111111111,
+      "lat_dms": "31° 47'55\" N",
+      "lon_dms": "35° 08'46\" E"
+    },
+    {
+      "index": 142,
+      "code": "NSHRM",
+      "name_he": "מחלף נשרים",
+      "reporting_type": "חובה",
+      "lat": 31.909166666666664,
+      "lon": 34.891666666666666,
+      "lat_dms": "31° 54'33\" N",
+      "lon_dms": "34° 53'30\" E"
+    },
+    {
+      "index": 143,
+      "code": "MRISN",
+      "name_he": "מחלף ראשון",
+      "reporting_type": "דרישה",
+      "lat": 31.97694444444444,
+      "lon": 34.79194444444444,
+      "lat_dms": "31° 58'37\" N",
+      "lon_dms": "34° 47'31\" E"
+    },
+    {
+      "index": 144,
+      "code": "MYTAR",
+      "name_he": "מיתר",
+      "reporting_type": "חובה",
+      "lat": 31.314722222222223,
+      "lon": 34.93805555555555,
+      "lat_dms": "31° 18'53\" N",
+      "lon_dms": "34° 56'17\" E"
+    },
+    {
+      "index": 145,
+      "code": "MESAR",
+      "name_he": "מעלה מישר",
+      "reporting_type": "דרישה",
+      "lat": 30.501666666666665,
+      "lon": 34.94361111111111,
+      "lat_dms": "30° 30'06\" N",
+      "lon_dms": "34° 56'37\" E"
+    },
+    {
+      "index": 146,
+      "code": "MIHMS",
+      "name_he": "מעלה מכמש",
+      "reporting_type": "חובה",
+      "lat": 31.854444444444447,
+      "lon": 35.32944444444445,
+      "lat_dms": "31° 51'16\" N",
+      "lon_dms": "35° 19'46\" E"
+    },
+    {
+      "index": 147,
+      "code": "LLMZ",
+      "name_he": "מצדה",
+      "reporting_type": "חובה",
+      "lat": 31.329166666666666,
+      "lon": 35.388333333333335,
+      "lat_dms": "31° 19'45\" N",
+      "lon_dms": "35° 23'18\" E"
+    },
+    {
+      "index": 148,
+      "code": "MZDOT",
+      "name_he": "מצודות",
+      "reporting_type": "חובה",
+      "lat": 31.35638888888889,
+      "lon": 35.1075,
+      "lat_dms": "31° 21'23\" N",
+      "lon_dms": "35° 06'27\" E"
+    },
+    {
+      "index": 149,
+      "code": "EVLYM",
+      "name_he": "אבליים",
+      "reporting_type": "דרישה",
+      "lat": 32.823888888888895,
+      "lon": 35.15138888888889,
+      "lat_dms": "32° 49'26\" N",
+      "lon_dms": "35° 09'05\" E"
+    },
+    {
+      "index": 150,
+      "code": "OHLIM",
+      "name_he": "אוהלים",
+      "reporting_type": "חובה",
+      "lat": 31.191111111111113,
+      "lon": 34.80472222222222,
+      "lat_dms": "31° 11'28\" N",
+      "lon_dms": "34° 48'17\" E"
+    },
+    {
+      "index": 151,
+      "code": "OLGAH",
+      "name_he": "אולגה",
+      "reporting_type": "חובה",
+      "lat": 32.43138888888889,
+      "lon": 34.865833333333335,
+      "lat_dms": "32° 25'53\" N",
+      "lon_dms": "34° 51'57\" E"
+    },
+    {
+      "index": 152,
+      "code": "OFKIM",
+      "name_he": "אופקים",
+      "reporting_type": "דרישה",
+      "lat": 31.322222222222223,
+      "lon": 34.61888888888889,
+      "lat_dms": "31° 19'20\" N",
+      "lon_dms": "34° 37'08\" E"
+    },
+    {
+      "index": 153,
+      "code": "AHIUD",
+      "name_he": "אחיהוד",
+      "reporting_type": "דרישה",
+      "lat": 32.911944444444444,
+      "lon": 35.18111111111111,
+      "lat_dms": "32° 54'43\" N",
+      "lon_dms": "35° 10'52\" E"
+    },
+    {
+      "index": 154,
+      "code": "AYLON",
+      "name_he": "איילון",
+      "reporting_type": "חובה",
+      "lat": 31.871666666666666,
+      "lon": 34.94361111111111,
+      "lat_dms": "31° 52'18\" N",
+      "lon_dms": "34° 56'37\" E"
+    },
+    {
+      "index": 155,
+      "code": "LLER",
+      "name_he": "אילן ואסף רמון",
+      "reporting_type": "ARP",
+      "lat": 29.72722222222222,
+      "lon": 35.01416666666667,
+      "lat_dms": "29° 43'38\" N",
+      "lon_dms": "35° 00'51\" E"
+    },
+    {
+      "index": 156,
+      "code": "EILAT",
+      "name_he": "אילת",
+      "reporting_type": "דרישה",
+      "lat": 29.558333333333334,
+      "lon": 34.95888888888889,
+      "lat_dms": "29° 33'30\" N",
+      "lon_dms": "34° 57'32\" E"
+    },
+    {
+      "index": 157,
+      "code": "IKKEA",
+      "name_he": "איקאה",
+      "reporting_type": "דרישה",
+      "lat": 31.95138888888889,
+      "lon": 34.77027777777778,
+      "lat_dms": "31° 57'05\" N",
+      "lon_dms": "34° 46'13\" E"
+    },
+    {
+      "index": 158,
+      "code": "ALUMT",
+      "name_he": "אלומות",
+      "reporting_type": "דרישה",
+      "lat": 32.71416666666667,
+      "lon": 35.546388888888885,
+      "lat_dms": "32° 42'51\" N",
+      "lon_dms": "35° 32'47\" E"
+    },
+    {
+      "index": 159,
+      "code": "ALLON",
+      "name_he": "אלון",
+      "reporting_type": "דרישה",
+      "lat": 32.04138888888889,
+      "lon": 35.36666666666667,
+      "lat_dms": "32° 02'29\" N",
+      "lon_dms": "35° 22'00\" E"
+    },
+    {
+      "index": 160,
+      "code": "ALMOG",
+      "name_he": "אלמוג",
+      "reporting_type": "דרישה",
+      "lat": 31.789722222222224,
+      "lon": 35.45638888888889,
+      "lat_dms": "31° 47'23\" N",
+      "lon_dms": "35° 27'23\" E"
+    },
+    {
+      "index": 161,
+      "code": "AMNON",
+      "name_he": "אמנון",
+      "reporting_type": "דרישה",
+      "lat": 32.90555555555555,
+      "lon": 35.56666666666667,
+      "lat_dms": "32° 54'20\" N",
+      "lon_dms": "35° 34'00\" E"
+    },
+    {
+      "index": 162,
+      "code": "OSNAT",
+      "name_he": "אסנת",
+      "reporting_type": "דרישה",
+      "lat": 31.83277777777778,
+      "lon": 34.52333333333333,
+      "lat_dms": "31° 49'58\" N",
+      "lon_dms": "34° 31'24\" E"
+    },
+    {
+      "index": 163,
+      "code": "APOLN",
+      "name_he": "אפולוניה",
+      "reporting_type": "דרישה",
+      "lat": 32.191111111111105,
+      "lon": 34.79722222222222,
+      "lat_dms": "32° 11'28\" N",
+      "lon_dms": "34° 47'50\" E"
+    },
+    {
+      "index": 164,
+      "code": "AFFEK",
+      "name_he": "אפק",
+      "reporting_type": "חובה",
+      "lat": 32.84027777777778,
+      "lon": 35.12777777777778,
+      "lat_dms": "32° 50'25\" N",
+      "lon_dms": "35° 07'40\" E"
+    },
+    {
+      "index": 165,
+      "code": "ARGMN",
+      "name_he": "ארגמן",
+      "reporting_type": "דרישה",
+      "lat": 32.17305555555555,
+      "lon": 35.5325,
+      "lat_dms": "32° 10'23\" N",
+      "lon_dms": "35° 31'57\" E"
+    },
+    {
+      "index": 166,
+      "code": "ARENA",
+      "name_he": "ארנה",
+      "reporting_type": "דרישה",
+      "lat": 32.164722222222224,
+      "lon": 34.785555555555554,
+      "lat_dms": "32° 09'53\" N",
+      "lon_dms": "34° 47'08\" E"
+    },
+    {
+      "index": 167,
+      "code": "NASIH",
+      "name_he": "אשל הנשיא",
+      "reporting_type": "חובה",
+      "lat": 31.330277777777777,
+      "lon": 34.69833333333333,
+      "lat_dms": "31° 19'49\" N",
+      "lon_dms": "34° 41'54\" E"
+    },
+    {
+      "index": 168,
+      "code": "ESTOL",
+      "name_he": "אשתאול",
+      "reporting_type": "דרישה",
+      "lat": 31.779444444444444,
+      "lon": 35.01138888888889,
+      "lat_dms": "31° 46'46\" N",
+      "lon_dms": "35° 00'41\" E"
+    },
+    {
+      "index": 169,
+      "code": "BRORA",
+      "name_he": "באר אורה",
+      "reporting_type": "דרישה",
+      "lat": 29.708055555555553,
+      "lon": 34.99722222222222,
+      "lat_dms": "29° 42'29\" N",
+      "lon_dms": "34° 59'50\" E"
+    },
+    {
+      "index": 170,
+      "code": "BMNUH",
+      "name_he": "באר מנוחה",
+      "reporting_type": "דרישה",
+      "lat": 30.303333333333335,
+      "lon": 35.134166666666665,
+      "lat_dms": "30° 18'12\" N",
+      "lon_dms": "35° 08'03\" E"
+    },
+    {
+      "index": 171,
+      "code": "BOREN",
+      "name_he": "בית אורן",
+      "reporting_type": "דרישה",
+      "lat": 32.714444444444446,
+      "lon": 34.97083333333334,
+      "lat_dms": "32° 42'52\" N",
+      "lon_dms": "34° 58'15\" E"
+    },
+    {
+      "index": 172,
+      "code": "GOVRN",
+      "name_he": "בית גוברין",
+      "reporting_type": "דרישה",
+      "lat": 31.60611111111111,
+      "lon": 34.89277777777778,
+      "lat_dms": "31° 36'22\" N",
+      "lon_dms": "34° 53'34\" E"
+    },
+    {
+      "index": 173,
+      "code": "HNINA",
+      "name_he": "בית חנינא",
+      "reporting_type": "חובה",
+      "lat": 31.830277777777777,
+      "lon": 35.2075,
+      "lat_dms": "31° 49'49\" N",
+      "lon_dms": "35° 12'27\" E"
+    },
+    {
+      "index": 174,
+      "code": "BOVED",
+      "name_he": "בית עובד",
+      "reporting_type": "דרישה",
+      "lat": 31.92027777777778,
+      "lon": 34.769999999999996,
+      "lat_dms": "31° 55'13\" N",
+      "lon_dms": "34° 46'12\" E"
+    },
+    {
+      "index": 175,
+      "code": "BEZRA",
+      "name_he": "בית עזרא",
+      "reporting_type": "חובה",
+      "lat": 31.74138888888889,
+      "lon": 34.645833333333336,
+      "lat_dms": "31° 44'29\" N",
+      "lon_dms": "34° 38'45\" E"
+    },
+    {
+      "index": 176,
+      "code": "BKAMA",
+      "name_he": "בית קמה",
+      "reporting_type": "חובה",
+      "lat": 31.441666666666666,
+      "lon": 34.76555555555556,
+      "lat_dms": "31° 26'30\" N",
+      "lon_dms": "34° 45'56\" E"
+    },
+    {
+      "index": 177,
+      "code": "BSEMS",
+      "name_he": "בית שמש",
+      "reporting_type": "דרישה",
+      "lat": 31.754722222222224,
+      "lon": 34.981388888888894,
+      "lat_dms": "31° 45'17\" N",
+      "lon_dms": "34° 58'53\" E"
+    },
+    {
+      "index": 178,
+      "code": "LLBG",
+      "name_he": "גוריון",
+      "reporting_type": "ARP",
+      "lat": 32.00944444444445,
+      "lon": 34.885555555555555,
+      "lat_dms": "32° 00'34\" N",
+      "lon_dms": "34° 53'08\" E"
+    },
+    {
+      "index": 179,
+      "code": "DEROR",
+      "name_he": "בני דרור",
+      "reporting_type": "חובה",
+      "lat": 32.257222222222225,
+      "lon": 34.89111111111111,
+      "lat_dms": "32° 15'26\" N",
+      "lon_dms": "34° 53'28\" E"
+    },
+    {
+      "index": 180,
+      "code": "BAZRA",
+      "name_he": "בצרה",
+      "reporting_type": "חובה",
+      "lat": 32.218611111111116,
+      "lon": 34.8825,
+      "lat_dms": "32° 13'07\" N",
+      "lon_dms": "34° 52'57\" E"
+    },
+    {
+      "index": 181,
+      "code": "BHAIL",
+      "name_he": "ברור חיל",
+      "reporting_type": "דרישה",
+      "lat": 31.55777777777778,
+      "lon": 34.6325,
+      "lat_dms": "31° 33'28\" N",
+      "lon_dms": "34° 37'57\" E"
+    },
+    {
+      "index": 182,
+      "code": "GALIM",
+      "name_he": "בת גלים",
+      "reporting_type": "חובה",
+      "lat": 32.84111111111111,
+      "lon": 34.98111111111111,
+      "lat_dms": "32° 50'28\" N",
+      "lon_dms": "34° 58'52\" E"
+    },
+    {
+      "index": 183,
+      "code": "GVULT",
+      "name_he": "גבולות",
+      "reporting_type": "ARP",
+      "lat": 31.2275,
+      "lon": 34.46027777777778,
+      "lat_dms": "31° 13'39\" N",
+      "lon_dms": "34° 27'37\" E"
+    },
+    {
+      "index": 184,
+      "code": "GVARM",
+      "name_he": "גברעם",
+      "reporting_type": "דרישה",
+      "lat": 31.593333333333334,
+      "lon": 34.61027777777778,
+      "lat_dms": "31° 35'36\" N",
+      "lon_dms": "34° 36'37\" E"
+    },
+    {
+      "index": 185,
+      "code": "ZGOAL",
+      "name_he": "גורל",
+      "reporting_type": "חובה",
+      "lat": 31.31277777777778,
+      "lon": 34.78777777777778,
+      "lat_dms": "31° 18'46\" N",
+      "lon_dms": "34° 47'16\" E"
+    },
+    {
+      "index": 186,
+      "code": "GILAM",
+      "name_he": "גילעם",
+      "reporting_type": "חובה",
+      "lat": 32.82138888888889,
+      "lon": 35.1325,
+      "lat_dms": "32° 49'17\" N",
+      "lon_dms": "35° 07'57\" E"
+    },
+    {
+      "index": 187,
+      "code": "GILAT",
+      "name_he": "גילת",
+      "reporting_type": "חובה",
+      "lat": 31.33722222222222,
+      "lon": 34.653055555555554,
+      "lat_dms": "31° 20'14\" N",
+      "lon_dms": "34° 39'11\" E"
+    },
+    {
+      "index": 188,
+      "code": "GNYAM",
+      "name_he": "גני עם",
+      "reporting_type": "חובה",
+      "lat": 32.150277777777774,
+      "lon": 34.89416666666666,
+      "lat_dms": "32° 09'01\" N",
+      "lon_dms": "34° 53'39\" E"
+    },
+    {
+      "index": 189,
+      "code": "DUGIT",
+      "name_he": "דוגית",
+      "reporting_type": "חובה",
+      "lat": 32.8525,
+      "lon": 35.05166666666666,
+      "lat_dms": "32° 51'09\" N",
+      "lon_dms": "35° 03'06\" E"
+    },
+    {
+      "index": 190,
+      "code": "DIMON",
+      "name_he": "דימונה",
+      "reporting_type": "חובה",
+      "lat": 31.067777777777778,
+      "lon": 35.005833333333335,
+      "lat_dms": "31° 04'04\" N",
+      "lon_dms": "35° 00'21\" E"
+    },
+    {
+      "index": 191,
+      "code": "DEENA",
+      "name_he": "דינה",
+      "reporting_type": "חובה",
+      "lat": 32.02388888888889,
+      "lon": 34.64055555555556,
+      "lat_dms": "32° 01'26\" N",
+      "lon_dms": "34° 38'26\" E"
+    },
+    {
+      "index": 192,
+      "code": "DALIA",
+      "name_he": "דליה",
+      "reporting_type": "חובה",
+      "lat": 32.596944444444446,
+      "lon": 35.083333333333336,
+      "lat_dms": "32° 35'49\" N",
+      "lon_dms": "35° 05'00\" E"
+    },
+    {
+      "index": 193,
+      "code": "LLBO",
+      "name_he": "הבונים",
+      "reporting_type": "ARP",
+      "lat": 32.65,
+      "lon": 34.93277777777777,
+      "lat_dms": "32° 39'00\" N",
+      "lon_dms": "34° 55'58\" E"
+    },
+    {
+      "index": 194,
+      "code": "HODYA",
+      "name_he": "הודיה",
+      "reporting_type": "דרישה",
+      "lat": 31.68277777777778,
+      "lon": 34.652499999999996,
+      "lat_dms": "31° 40'58\" N",
+      "lon_dms": "34° 39'09\" E"
+    },
+    {
+      "index": 195,
+      "code": "ZOREA",
+      "name_he": "הזורע",
+      "reporting_type": "דרישה",
+      "lat": 32.64805555555556,
+      "lon": 35.11888888888889,
+      "lat_dms": "32° 38'53\" N",
+      "lon_dms": "35° 07'08\" E"
+    },
+    {
+      "index": 196,
+      "code": "HOTRM",
+      "name_he": "החותרים",
+      "reporting_type": "חובה",
+      "lat": 32.75388888888889,
+      "lon": 34.93694444444444,
+      "lat_dms": "32° 45'14\" N",
+      "lon_dms": "34° 56'13\" E"
+    },
+    {
+      "index": 197,
+      "code": "MOVIL",
+      "name_he": "המוביל",
+      "reporting_type": "חובה",
+      "lat": 32.759166666666665,
+      "lon": 35.233333333333334,
+      "lat_dms": "32° 45'33\" N",
+      "lon_dms": "35° 14'00\" E"
+    },
+    {
+      "index": 198,
+      "code": "HTZUK",
+      "name_he": "הצוק",
+      "reporting_type": "חובה",
+      "lat": 32.14555555555555,
+      "lon": 34.77833333333333,
+      "lat_dms": "32° 08'44\" N",
+      "lon_dms": "34° 46'42\" E"
+    }
+  ]
+}
