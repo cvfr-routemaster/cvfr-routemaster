@@ -95,6 +95,7 @@ There are two caveats for running from source at this stage of the program devel
 2. You need tesseract installed to perform OCR. On Debian (and Ubuntu, Mint, etc), install it with: sudo apt install tesseract-ocr tesseract-ocr-eng tesseract-ocr-heb. If you are on a different distro, you probably know what the package install commands are. On windows, you need tesseract executables. The release ZIP contains a tesseract folder, copy it over next to cvfr_routemaster and you are good to go.
 
 Ensure that you have all of the contents of requirements.txt installed in your env or venv, and then:
+
 py -m cvfr_routemaster
 
 Enjoy!
