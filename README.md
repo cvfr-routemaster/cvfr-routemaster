@@ -27,7 +27,7 @@ altitude and speed (the colour indicates the wake category).
 ## Basic usage
 
 1. **No installation required** — just extract the ZIP wherever you like
-   and run the executable.
+   and run the executable. The current release is built for windows only, but running from source is possible also on Linux, see the bottom section of this document.
 2. Due to copyright, the tool does not ship with the chart or the satellite
    imagery — but it will download them for your personal use under the
    respective providers' terms of use.
@@ -83,3 +83,18 @@ redistribute it, modify it, and redistribute their modifications, etc.,
 provided the distribution complies with the AGPL terms. The source code is
 distributed alongside the program and is written in Python. The program is
 completely free and will always remain so.
+
+## Running from source and on Linux
+
+The program is written in python, so it will happily work from sources (the cvfr_routemaster folder is a self-contained python module), including on Linux.
+
+To do this, first, clone the repo.
+
+There are two caveats for running from source at this stage of the program development:
+1. You will need to take the .cvfr_routemaster folder from the windows release ZIP to obtain the map calibration data. Or you will need to calibrate the maps yourself. To do the latter, open the map settings menu, load map files (or point to the actual URLs on the CAAI site) and then perform the calibration of the map (simply follow the instructions on the screen). The .cvfr_routemaster folder must be placed next to the cvfr_routemaster module folder for the program to pick up the contents, if you opt for this route. I recommend you just take the folder from the windows release ZIP and save some time.
+2. You need tesseract installed to perform OCR. On Debian (and Ubuntu, Mint, etc), install it with: sudo apt install tesseract-ocr tesseract-ocr-eng tesseract-ocr-heb. If you are on a different distro, you probably know what the package install commands are. On windows, you need tesseract executables. The release ZIP contains a tesseract folder, copy it over next to cvfr_routemaster and you are good to go.
+
+Ensure that you have all of the contents of requirements.txt installed in your env or venv, and then:
+py -m cvfr_routemaster
+
+Enjoy!
