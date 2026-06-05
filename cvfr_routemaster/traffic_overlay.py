@@ -1029,6 +1029,21 @@ class TrafficOverlay:
             self._scene.removeItem(item)
         self._items.clear()
 
+    def set_scene(self, scene: QGraphicsScene) -> None:
+        """Rebind the overlay to a different :class:`QGraphicsScene`.
+
+        Used when :class:`MainWindow` keeps one resident scene per map
+        mode and swaps the active one on a mode switch (so switching is
+        O(1) rather than tearing down and rebuilding tens of thousands
+        of items). Any plane items currently rendered are removed from
+        the old scene first; the next ``set_pilots`` repaints them into
+        the new one. Idempotent when ``scene`` is already bound.
+        """
+        if scene is self._scene:
+            return
+        self.clear()
+        self._scene = scene
+
     def __len__(self) -> int:
         """Number of plane items currently rendered. Convenience
         for tests and the future "12 aircraft visible" status-bar

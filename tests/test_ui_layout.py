@@ -34,11 +34,12 @@ Covers four families:
    validation gates the ``LOAD_NOW`` return code, and that the title now
    reads "Map File Settings".
 3. ``MainWindow`` toolbar — that the toolbar surfaces *exactly* the
-   nine intended visible actions (Map File Settings, Map Calibration
-   Options, Display Settings, Airplane mode, Hide Waypoint View,
-   Hide Usage Hints, Show VATSIM traffic, Satellite view, Legal and
-   Copyright Info) across the four titled groups, plus the hidden
-   Cancel calibration action; no stragglers from the old layout.
+   eleven intended visible actions (Map File Settings, Map Calibration
+   Options, Display Settings, the two v4 Map Type toggles, Airplane
+   mode, Hide Waypoint View, Hide Usage Hints, Show VATSIM traffic,
+   Satellite view, Legal and Copyright Info) across the five titled
+   groups, plus the hidden Cancel calibration action; no stragglers
+   from the old layout.
    (The legacy "Download Satellite Imagery…" button was removed
    in v3.3+ when the bulk download became unconditional.)
 4. Hint-label wording and styling — bright white, ``mapHint`` object name,
@@ -473,22 +474,25 @@ def _toolbar_button_texts(tb) -> list[str]:
     ]
 
 
-def test_main_toolbar_visible_actions_are_only_ten(main_window) -> None:
-    """The toolbar must surface exactly nine visible commands across
-    its four titled groups, in this left-to-right order:
+def test_main_toolbar_visible_actions_are_only_eleven(main_window) -> None:
+    """The toolbar must surface exactly eleven visible commands across
+    its five titled groups, in this left-to-right order:
 
     1. Program Settings group:
        * Map File Settings…
        * Map Calibration Options…
        * Display Settings…
-    2. View Toggles group:
+    2. Map Type group (v4):
+       * CVFR - כטר"מ
+       * LSA - אז"מ
+    3. View Toggles group:
        * Airplane mode
        * Hide Waypoint View
        * Hide Usage Hints
        * Show VATSIM traffic
-    3. Satellite View Options group:
+    4. Satellite View Options group:
        * Satellite view
-    4. Program Information group:
+    5. Program Information group:
        * Legal and Copyright Info…
 
     Anything else means a button got added or the restructure
@@ -518,6 +522,8 @@ def test_main_toolbar_visible_actions_are_only_ten(main_window) -> None:
         "Map File Settings…",
         "Map Calibration Options…",
         "Display Settings…",
+        'CVFR - כטר"מ',
+        'LSA - אז"מ',
         "Airplane mode",
         "Hide Waypoint View",
         "Hide Usage Hints",

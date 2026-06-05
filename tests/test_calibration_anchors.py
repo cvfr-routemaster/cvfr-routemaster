@@ -257,6 +257,64 @@ def test_select_anchors_for_sheet_appends_shared_overlap_anchors() -> None:
     assert all(r.code.startswith("N") for r in north_head)
 
 
+def test_select_anchors_for_sheet_honours_per_mode_overlap_codes() -> None:
+    """The per-mode ``preferred_overlap_codes`` override (v4 map modes)
+    selects seam anchors from the caller's code list, not the CVFR
+    default triangle."""
+    pool = [
+        _r(0, "SA", 29.5, 34.8),
+        _r(1, "SB", 29.6, 35.2),
+        _r(2, "SC", 29.7, 34.6),
+        _r(3, "SD", 30.0, 35.4),
+        # CVFR default codes present, plus a custom seam VRP.
+        _r(4, "SDROT", 31.5067, 34.5856),
+        _r(5, "ENGDI", 31.4642, 35.3947),
+        _r(6, "ZUKIM", 31.50, 35.36),
+        _r(7, "NA", 33.0, 34.9),
+        _r(8, "NB", 33.1, 35.0),
+        _r(9, "NC", 33.2, 35.1),
+        _r(10, "ND", 33.3, 35.2),
+    ]
+    chosen = select_anchors_for_sheet(
+        pool,
+        "south",
+        4,
+        n_overlap=1,
+        preferred_overlap_codes=("ZUKIM",),
+    )
+    assert chosen is not None
+    assert chosen[-1].code == "ZUKIM"
+    assert "SDROT" not in {r.code for r in chosen}
+
+
+def test_select_anchors_for_sheet_empty_overlap_codes_is_edge_only() -> None:
+    """A mode with no seam VRPs (``preferred_overlap_codes=()``) yields
+    edge anchors only — no seam pinning — even if n_overlap > 0."""
+    pool = [
+        _r(0, "SA", 29.5, 34.8),
+        _r(1, "SB", 29.6, 35.2),
+        _r(2, "SC", 29.7, 34.6),
+        _r(3, "SD", 30.0, 35.4),
+        _r(4, "SE", 30.4, 35.0),
+        _r(5, "SF", 30.5, 34.9),
+        _r(6, "SDROT", 31.5067, 34.5856),
+        _r(7, "ENGDI", 31.4642, 35.3947),
+        _r(8, "NA", 33.0, 34.9),
+        _r(9, "NB", 33.1, 35.0),
+        _r(10, "NC", 33.2, 35.1),
+        _r(11, "ND", 33.3, 35.2),
+        _r(12, "NE", 33.4, 35.3),
+        _r(13, "NF", 33.5, 35.4),
+    ]
+    chosen = select_anchors_for_sheet(
+        pool, "south", 4, n_overlap=3, preferred_overlap_codes=()
+    )
+    assert chosen is not None
+    assert len(chosen) == 4
+    assert "SDROT" not in {r.code for r in chosen}
+    assert "ENGDI" not in {r.code for r in chosen}
+
+
 def test_select_anchors_for_sheet_overlap_anchors_immune_to_db_bias() -> None:
     """Regression: the previous lat-band / lon-extremes algorithms picked
     wrong fixes (YASSD, NAAMA, AMIOZ, ZMGEN) depending on which way the

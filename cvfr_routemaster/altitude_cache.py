@@ -92,14 +92,16 @@ from cvfr_routemaster.map_crop import CropMeta
 ALTITUDE_CACHE_FORMAT_VERSION = 7
 
 
-def _cache_dir(project_root: Path) -> Path:
+def _cache_dir(project_root: Path, mode_id: str | None = None) -> Path:
     d = project_root / ".cvfr_routemaster"
-    d.mkdir(exist_ok=True)
+    if mode_id is not None:
+        d = d / mode_id
+    d.mkdir(parents=True, exist_ok=True)
     return d
 
 
-def _cache_path(project_root: Path, sheet: str) -> Path:
-    return _cache_dir(project_root) / f"altitude_arrows_{sheet}.json"
+def _cache_path(project_root: Path, sheet: str, mode_id: str | None = None) -> Path:
+    return _cache_dir(project_root, mode_id) / f"altitude_arrows_{sheet}.json"
 
 
 def _pdf_fp(path: Path) -> dict[str, Any]:
@@ -163,6 +165,7 @@ def try_load_altitude_arrows(
     *,
     render_dpi: float,
     crop: CropMeta,
+    mode_id: str | None = None,
 ) -> list[AltitudeArrow] | None:
     """Return cached arrows if the manifest matches the current PDF + render
     parameters, otherwise ``None`` (telling the caller to extract afresh).
@@ -172,7 +175,7 @@ def try_load_altitude_arrows(
     ``extract → save`` sequence is the single source of truth.
     """
     pdf_path = Path(pdf_path)
-    cache_file = _cache_path(project_root, sheet)
+    cache_file = _cache_path(project_root, sheet, mode_id)
     if not cache_file.is_file():
         return None
     try:
@@ -224,6 +227,7 @@ def save_altitude_arrows(
     *,
     render_dpi: float,
     crop: CropMeta,
+    mode_id: str | None = None,
 ) -> None:
     """Persist ``arrows`` for this PDF + render parameters.
 
@@ -252,7 +256,7 @@ def save_altitude_arrows(
         ],
     }
 
-    cache_file = _cache_path(project_root, sheet)
+    cache_file = _cache_path(project_root, sheet, mode_id)
     try:
         cache_file.write_text(
             json.dumps(payload, ensure_ascii=False, indent=2),

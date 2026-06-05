@@ -27,10 +27,12 @@
 from __future__ import annotations
 
 import sqlite3
+from dataclasses import replace
 from pathlib import Path
-from typing import Iterable
+from typing import Callable, Iterable, Mapping
 
 from cvfr_routemaster.back_page_ocr import extract_waypoints_ocr
+from cvfr_routemaster.map_modes import MapMode, WaypointStrategy
 from cvfr_routemaster.waypoint_types import WaypointRecord
 
 
@@ -42,13 +44,102 @@ def load_waypoints_from_back_pdf(path: Path | str) -> tuple[list[WaypointRecord]
     return records, "hybrid"
 
 
+def _dedup_by_code(records: Iterable[WaypointRecord]) -> list[WaypointRecord]:
+    """Collapse cross-sheet duplicates, re-indexing 1..N in order.
+
+    LSA ships the same national reporting-point list on both the north
+    and south sheets; merging the two extractions would double every
+    point. We dedup on ``(code, lat, lon)`` rather than ``code`` alone:
+    the same point on both sheets has identical coordinates and collapses
+    to one, but two genuinely *different* points that happen to share a
+    code — e.g. נבטים and נגב, both stamped ``LLNV`` near Nevatim AFB —
+    have different coordinates and are both kept. First-seen wins (north
+    is extracted first), so the result is deterministic. Coordinates are
+    rounded to ~1 m so float noise can't manufacture a false distinct.
+    """
+    seen: set[tuple[str, int, int]] = set()
+    out: list[WaypointRecord] = []
+    for rec in records:
+        code = rec.code.strip().upper()
+        if not code:
+            continue
+        key = (code, round(rec.lat * 1e5), round(rec.lon * 1e5))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(replace(rec, index=len(out) + 1, code=code))
+    return out
+
+
+def load_waypoints_for_mode(
+    mode: MapMode,
+    paths_by_sheet: Mapping[str, Path | str],
+    progress: Callable[[int, int, str], None] | None = None,
+) -> tuple[list[WaypointRecord], str]:
+    """Extract, merge, and dedup reporting points for ``mode``.
+
+    ``paths_by_sheet`` maps a mode sheet key (``"back"`` for CVFR;
+    ``"north"`` / ``"south"`` for LSA) to the resolved local PDF path.
+    Each of the mode's :class:`WaypointSource` entries is mined with the
+    mode's strategy (vector-hybrid vs full-OCR) and page selector; the
+    results are concatenated in source order and deduped by code.
+
+    ``progress`` is an optional ``(done, total, sheet_key)`` callback
+    forwarded per source so a GUI can show a determinate "OCR row X of
+    N" bar during the (potentially multi-minute) full-OCR scans. The
+    counts reset per source — each source reports its own row total —
+    and ``sheet_key`` names the source so the label can say which sheet
+    is being scanned.
+
+    Returns ``(records, tag)``. ``tag`` records the strategy for the
+    waypoint cache's diagnostics. A source whose PDF is missing is
+    skipped (so a partially-downloaded mode still yields whatever it
+    can rather than raising).
+    """
+    full_ocr = mode.waypoint_strategy is WaypointStrategy.FULL_OCR
+    merged: list[WaypointRecord] = []
+    used_any = False
+    for source in mode.waypoint_sources:
+        raw = paths_by_sheet.get(source.sheet_key)
+        if not raw:
+            continue
+        path = Path(raw)
+        if not path.is_file():
+            continue
+        used_any = True
+        source_progress: Callable[[int, int], None] | None = None
+        if progress is not None:
+            key = source.sheet_key
+            source_progress = lambda done, total, _k=key: progress(
+                done, total, _k
+            )
+        merged.extend(
+            extract_waypoints_ocr(
+                path,
+                full_ocr=full_ocr,
+                pages=source.pages,
+                progress=source_progress,
+            )
+        )
+
+    if not used_any:
+        return [], "missing"
+    tag = "ocr" if full_ocr else "hybrid"
+    return _dedup_by_code(merged), tag
+
+
 def records_to_sqlite(records: Iterable[WaypointRecord], conn: sqlite3.Connection) -> None:
     conn.execute("DROP TABLE IF EXISTS waypoints")
+    # No UNIQUE/PRIMARY KEY on a data column: a code is *not* unique — LSA
+    # stamps two distinct points (נבטים and נגב) with ``LLNV`` near Nevatim
+    # AFB — and we don't want to depend on ``wp_idx`` uniqueness from
+    # externally-written cache data either. SQLite's implicit rowid is the
+    # row identity; ``code`` keeps a non-unique index for lookups.
     conn.execute(
         """
         CREATE TABLE waypoints (
             wp_idx INTEGER NOT NULL,
-            code TEXT PRIMARY KEY,
+            code TEXT NOT NULL,
             name_he TEXT,
             reporting_type TEXT,
             lat REAL NOT NULL,
@@ -58,6 +149,7 @@ def records_to_sqlite(records: Iterable[WaypointRecord], conn: sqlite3.Connectio
         )
         """
     )
+    conn.execute("CREATE INDEX idx_waypoints_code ON waypoints (code)")
     conn.executemany(
         """
         INSERT INTO waypoints (wp_idx, code, name_he, reporting_type, lat, lon, lat_dms, lon_dms)

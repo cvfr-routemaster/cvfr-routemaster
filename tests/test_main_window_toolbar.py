@@ -27,10 +27,12 @@
 """Tests for the main-toolbar group restructure.
 
 The top toolbar used to be a flat list of buttons. It now reads
-as four titled, rounded-border :class:`QFrame` groups:
+as titled, rounded-border :class:`QFrame` groups:
 
 * **Program Settings**: Map File Settings, Map Calibration
   Options, Display Settings.
+* **Map Type** (v4): one Garmin-green toggle button per chart
+  product (CVFR, LSA, …), sitting just right of Program Settings.
 * **View Toggles**: Airplane mode, Hide Waypoint View, Hide
   Usage Hints, Show VATSIM traffic.
 * **Satellite View Options**: Satellite view. (The legacy
@@ -132,6 +134,21 @@ def test_program_settings_group_exists_with_expected_buttons(
     ]
 
 
+def test_map_type_group_exists_with_expected_buttons(
+    main_window,
+) -> None:
+    """The v4 Map Type group holds one checkable toggle button per
+    registered chart product, in registry order (CVFR first, LSA
+    next). Pin membership + order so a future mode registration has
+    to update this test deliberately."""
+    frame = main_window.findChild(QFrame, "group_map_type")
+    assert frame is not None
+    assert _button_object_names_in_frame(frame) == [
+        "act_map_mode_cvfr",
+        "act_map_mode_lsa",
+    ]
+
+
 def test_view_toggles_group_exists_with_expected_buttons(
     main_window,
 ) -> None:
@@ -188,10 +205,13 @@ def test_program_information_group_exists_with_expected_buttons(
 
 
 def test_only_four_named_groups_exist(main_window) -> None:
-    """The toolbar must carry exactly the four named groups.
-    A fifth would mean someone introduced a new group without
-    updating this test (and probably without updating the QSS
-    stylesheet selector list either).
+    """The toolbar must carry exactly the expected named groups.
+    An unexpected one would mean someone introduced a new group
+    without updating this test (and probably without updating the
+    QSS stylesheet selector list either).
+
+    The v4 ``Map Type`` switcher added a fifth group
+    (``group_map_type``) at the left of the toolbar.
 
     ``QLabel`` inherits from ``QFrame`` in Qt's class hierarchy,
     so ``findChildren(QFrame)`` returns the title labels too —
@@ -201,6 +221,7 @@ def test_only_four_named_groups_exist(main_window) -> None:
     ``group_*_title`` labels.
     """
     expected = {
+        "group_map_type",
         "group_program_settings",
         "group_view_toggles",
         "group_satellite_view_options",
@@ -245,7 +266,7 @@ def test_cancel_calibration_action_is_not_in_any_group(
 
 def test_cancel_calibration_button_exists_in_toolbar(main_window) -> None:
     """The cancel-calibration button must be present on the
-    toolbar (outside the four titled groups) so it can become
+    toolbar (outside the titled groups) so it can become
     visible when calibration starts.
 
     Because the button is added via ``tb.addAction(...)`` (so

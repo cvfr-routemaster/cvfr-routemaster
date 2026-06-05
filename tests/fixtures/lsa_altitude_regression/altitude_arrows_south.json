@@ -1,0 +1,1099 @@
+{
+  "format_version": 7,
+  "render_dpi": 288.0,
+  "pdf": {
+    "path": "C:\\flying\\cvfr-routemaster\\.cvfr_routemaster\\lsa\\charts\\lsa_south.pdf",
+    "mtime_ns": 1780335484586695400,
+    "size": 10243520
+  },
+  "crop": {
+    "offset_x": 349,
+    "offset_y": 417,
+    "source_w": 7937,
+    "source_h": 11339,
+    "cropped_w": 7243,
+    "cropped_h": 10425
+  },
+  "arrows": [
+    {
+      "u": 0.514819480380904,
+      "v": 0.20797193495203836,
+      "bearing_deg": 147.17652079825467,
+      "altitudes_ft": [
+        2700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.4941746354777889,
+      "v": 0.21120489491672292,
+      "bearing_deg": 89.41963463418881,
+      "altitudes_ft": [
+        2700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.5370330709685338,
+      "v": 0.2159263526678657,
+      "bearing_deg": 342.5697110128843,
+      "altitudes_ft": [
+        3000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.39046821136032206,
+      "v": 0.11445560153439749,
+      "bearing_deg": 40.09600654826414,
+      "altitudes_ft": [
+        2000
+      ],
+      "bidirectional": true
+    },
+    {
+      "u": 0.5875280712843435,
+      "v": 0.10998225396430843,
+      "bearing_deg": 279.1316110337227,
+      "altitudes_ft": [
+        2500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.5033743517447881,
+      "v": 0.1041187550145386,
+      "bearing_deg": 100.38801408979282,
+      "altitudes_ft": [
+        2200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.44104762316309715,
+      "v": 0.11078533657449041,
+      "bearing_deg": 57.99653410833292,
+      "altitudes_ft": [
+        2200
+      ],
+      "bidirectional": true
+    },
+    {
+      "u": 0.3655807155939355,
+      "v": 0.1176426160316948,
+      "bearing_deg": 130.17800784208657,
+      "altitudes_ft": [
+        2000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.3467424615959947,
+      "v": 0.09724929041142086,
+      "bearing_deg": 158.72596398844655,
+      "altitudes_ft": [
+        2000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.3938825160538511,
+      "v": 0.00712623065610012,
+      "bearing_deg": 194.16814289401003,
+      "altitudes_ft": [
+        1200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.4191307010987548,
+      "v": 0.12863405369454436,
+      "bearing_deg": 181.7183743521232,
+      "altitudes_ft": [
+        1700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.41330017991509044,
+      "v": 0.09944136932344752,
+      "bearing_deg": 109.30845691873901,
+      "altitudes_ft": [
+        1700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.6286889739446707,
+      "v": 0.4568177076948911,
+      "bearing_deg": 286.76410322406497,
+      "altitudes_ft": [
+        2900
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.4136210379310196,
+      "v": 0.10564750299727615,
+      "bearing_deg": 290.2765980800341,
+      "altitudes_ft": [
+        2000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.41456824153493027,
+      "v": 0.12152671580205449,
+      "bearing_deg": 302.6405122005226,
+      "altitudes_ft": [
+        2000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.3841098868088154,
+      "v": 0.11654728905964046,
+      "bearing_deg": 303.08438572145536,
+      "altitudes_ft": [
+        1000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.36352617055261544,
+      "v": 0.10436634676633694,
+      "bearing_deg": 337.45077216027846,
+      "altitudes_ft": [
+        1500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.3959497701354768,
+      "v": 0.03361023681055156,
+      "bearing_deg": 11.942939426504779,
+      "altitudes_ft": [
+        1500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.559961719327388,
+      "v": 0.7719058190947242,
+      "bearing_deg": 351.2104449585284,
+      "altitudes_ft": [
+        1700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.6138872776646994,
+      "v": 0.5862693438998801,
+      "bearing_deg": 30.5105215884563,
+      "altitudes_ft": [
+        1700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.675620166972188,
+      "v": 0.35754889838129494,
+      "bearing_deg": 11.549058250158282,
+      "altitudes_ft": [
+        800
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.6113214851828502,
+      "v": 0.6880638770233813,
+      "bearing_deg": 358.5414288578336,
+      "altitudes_ft": [
+        1700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.7221046408095972,
+      "v": 0.24742728473471223,
+      "bearing_deg": 13.039998871111038,
+      "altitudes_ft": [
+        800
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.7413824152831663,
+      "v": 0.18406439691996404,
+      "bearing_deg": 195.43143342074526,
+      "altitudes_ft": [
+        500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.5364645889320041,
+      "v": 0.8081400816846522,
+      "bearing_deg": 19.487146330560677,
+      "altitudes_ft": [
+        1700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.646052607177498,
+      "v": 0.4529210693944844,
+      "bearing_deg": 7.082205665294794,
+      "altitudes_ft": [
+        800
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.5124535145194067,
+      "v": 0.9052710019484412,
+      "bearing_deg": 185.96668819660275,
+      "altitudes_ft": [
+        500
+      ],
+      "bidirectional": true
+    },
+    {
+      "u": 0.7654326789192756,
+      "v": 0.07304401791067146,
+      "bearing_deg": 0.29564533109919466,
+      "altitudes_ft": [
+        800
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.5401532828814432,
+      "v": 0.7016669008543166,
+      "bearing_deg": 358.33048457949667,
+      "altitudes_ft": [
+        2500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.5216790697883553,
+      "v": 0.8659429331534773,
+      "bearing_deg": 8.472707808777443,
+      "altitudes_ft": [
+        1300
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.560136052697432,
+      "v": 0.6016996304205902,
+      "bearing_deg": 72.06134412152267,
+      "altitudes_ft": [
+        1700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.5818844762802373,
+      "v": 0.7325114283573142,
+      "bearing_deg": 16.313140388657132,
+      "altitudes_ft": [
+        1700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.3866024813835536,
+      "v": 0.2482314382868705,
+      "bearing_deg": 38.09126672491385,
+      "altitudes_ft": [
+        2500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.5411476230798336,
+      "v": 0.6431545544814149,
+      "bearing_deg": 0.5594802532012295,
+      "altitudes_ft": [
+        2500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.39795468628688535,
+      "v": 0.3789716351918465,
+      "bearing_deg": 7.877718393133648,
+      "altitudes_ft": [
+        3000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.3626543029183663,
+      "v": 0.07055989583333333,
+      "bearing_deg": 26.91059240866724,
+      "altitudes_ft": [
+        1500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.35793600003553566,
+      "v": 0.08375499990632494,
+      "bearing_deg": 8.417298207631859,
+      "altitudes_ft": [
+        1500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.41511845691264365,
+      "v": 0.18178249587829737,
+      "bearing_deg": 359.0826437116777,
+      "altitudes_ft": [
+        2000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.40787181555594093,
+      "v": 0.08949123904001799,
+      "bearing_deg": 9.335280086088062,
+      "altitudes_ft": [
+        2000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.43013769879251496,
+      "v": 0.14100770945743404,
+      "bearing_deg": 1.5563070134350028,
+      "altitudes_ft": [
+        2000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.5357179453437803,
+      "v": 0.5936765510566776,
+      "bearing_deg": 294.9102971271066,
+      "altitudes_ft": [
+        2500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.49062207130440016,
+      "v": 0.48188633468225417,
+      "bearing_deg": 326.2512276781652,
+      "altitudes_ft": [
+        3500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.48749546976391,
+      "v": 0.426958278796605,
+      "bearing_deg": 285.4589475794454,
+      "altitudes_ft": [
+        3500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.4595905130895139,
+      "v": 0.09205052364358514,
+      "bearing_deg": 334.1360293208192,
+      "altitudes_ft": [
+        2500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.40174379341020344,
+      "v": 0.28916748632344125,
+      "bearing_deg": 10.254215875727823,
+      "altitudes_ft": [
+        3000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.5630440345351614,
+      "v": 0.7171297493255395,
+      "bearing_deg": 313.37975167892927,
+      "altitudes_ft": [
+        2500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.40730147165370795,
+      "v": 0.06049086902353117,
+      "bearing_deg": 359.60026050417065,
+      "altitudes_ft": [
+        2000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.4117955203976609,
+      "v": 0.40421903102517986,
+      "bearing_deg": 341.15011678704667,
+      "altitudes_ft": [
+        3500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.4330007867109521,
+      "v": 0.21350398587380096,
+      "bearing_deg": 343.6645947176368,
+      "altitudes_ft": [
+        2000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.40697234930691784,
+      "v": 0.3391550509592326,
+      "bearing_deg": 358.3493398112036,
+      "altitudes_ft": [
+        3000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.6875436844194395,
+      "v": 0.15875122022577004,
+      "bearing_deg": 120.4930417201561,
+      "altitudes_ft": [
+        2300
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.4098513354488817,
+      "v": 0.11066167572643619,
+      "bearing_deg": 121.24074424239132,
+      "altitudes_ft": [
+        1700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.43093430318303594,
+      "v": 0.2244775039343525,
+      "bearing_deg": 138.84810231196695,
+      "altitudes_ft": [
+        2200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.6091705326479014,
+      "v": 0.12222770908968654,
+      "bearing_deg": 103.21592668126118,
+      "altitudes_ft": [
+        2300
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.22061036664135278,
+      "v": 0.12444586518285372,
+      "bearing_deg": 176.38774972928502,
+      "altitudes_ft": [
+        1200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.6547326405667541,
+      "v": 0.13216016541185013,
+      "bearing_deg": 116.4804419035977,
+      "altitudes_ft": [
+        2300
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.5155029552990389,
+      "v": 0.22462059258842926,
+      "bearing_deg": 218.6730992267576,
+      "altitudes_ft": [
+        2700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.2940513550799047,
+      "v": 0.09154408050774204,
+      "bearing_deg": 262.48234298218404,
+      "altitudes_ft": [
+        1500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.2149070688132076,
+      "v": 0.12271772132673935,
+      "bearing_deg": 262.29370225980875,
+      "altitudes_ft": [
+        800
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.1664046234861721,
+      "v": 0.13420027259442446,
+      "bearing_deg": 179.22577005016058,
+      "altitudes_ft": [
+        800
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.24481161228501336,
+      "v": 0.09667023802832733,
+      "bearing_deg": 221.3264068491424,
+      "altitudes_ft": [
+        800
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.31378589268302154,
+      "v": 0.08330416778000843,
+      "bearing_deg": 246.31356536428893,
+      "altitudes_ft": [
+        1500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.7044013326155373,
+      "v": 0.25851375149880096,
+      "bearing_deg": 195.0884387711085,
+      "altitudes_ft": [
+        500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.6022536969394598,
+      "v": 0.5941645121402878,
+      "bearing_deg": 181.78846641757556,
+      "altitudes_ft": [
+        1400
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.7562530582584382,
+      "v": 0.16831686994154677,
+      "bearing_deg": 4.985321513433746,
+      "altitudes_ft": [
+        800
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.7524577154117427,
+      "v": 0.10235522519484412,
+      "bearing_deg": 183.96722367576336,
+      "altitudes_ft": [
+        500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.5722735932365144,
+      "v": 0.7426318476468825,
+      "bearing_deg": 194.49023370246348,
+      "altitudes_ft": [
+        1000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.6613836701848015,
+      "v": 0.3670027259442446,
+      "bearing_deg": 190.48359482573548,
+      "altitudes_ft": [
+        500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.7581963034285443,
+      "v": 0.03698555413481715,
+      "bearing_deg": 183.55991623429995,
+      "altitudes_ft": [
+        500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.5301852578455508,
+      "v": 0.6552782149280576,
+      "bearing_deg": 181.5582409190641,
+      "altitudes_ft": [
+        2200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.5358275989914232,
+      "v": 0.8179509517386091,
+      "bearing_deg": 191.92241772655825,
+      "altitudes_ft": [
+        700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.6014855129521607,
+      "v": 0.5841486597611195,
+      "bearing_deg": 252.49619023699591,
+      "altitudes_ft": [
+        1400
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.5992083804896793,
+      "v": 0.697376910971223,
+      "bearing_deg": 216.99436971488973,
+      "altitudes_ft": [
+        1400
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.4187979484724733,
+      "v": 0.22283734730965227,
+      "bearing_deg": 221.72884509505994,
+      "altitudes_ft": [
+        2200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.532917754077021,
+      "v": 0.603798898381295,
+      "bearing_deg": 183.80349049468046,
+      "altitudes_ft": [
+        2200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.39756988899422674,
+      "v": 0.347847674985012,
+      "bearing_deg": 191.31595317905422,
+      "altitudes_ft": [
+        2700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.3865196583949823,
+      "v": 0.05045736848021583,
+      "bearing_deg": 222.85179100304214,
+      "altitudes_ft": [
+        1200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.39471900182205766,
+      "v": 0.31281812050359714,
+      "bearing_deg": 177.84925869876156,
+      "altitudes_ft": [
+        2700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.6307986321938786,
+      "v": 0.4754776959682254,
+      "bearing_deg": 188.3911987032308,
+      "altitudes_ft": [
+        1400
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.34917072171587094,
+      "v": 0.07794605721672662,
+      "bearing_deg": 194.50977963280116,
+      "altitudes_ft": [
+        1200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.39935407505126014,
+      "v": 0.07745764716351919,
+      "bearing_deg": 193.29500693683784,
+      "altitudes_ft": [
+        1700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.41785726885896035,
+      "v": 0.14290825933003598,
+      "bearing_deg": 210.64208662543055,
+      "altitudes_ft": [
+        1700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.7456842759819826,
+      "v": 0.1732828118576274,
+      "bearing_deg": 281.6761500300323,
+      "altitudes_ft": [
+        2600
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.4713491627384652,
+      "v": 0.24831099183153477,
+      "bearing_deg": 326.9950647797822,
+      "altitudes_ft": [
+        2500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.6500269252424755,
+      "v": 0.12243385596271622,
+      "bearing_deg": 286.1020487541285,
+      "altitudes_ft": [
+        2600
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.2363878361427488,
+      "v": 0.14567023334457435,
+      "bearing_deg": 348.9368454445388,
+      "altitudes_ft": [
+        1500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.6769840546475908,
+      "v": 0.12896174790570586,
+      "bearing_deg": 298.8994214493721,
+      "altitudes_ft": [
+        2600
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.4983334598109888,
+      "v": 0.25170596335431655,
+      "bearing_deg": 32.96313188906049,
+      "altitudes_ft": [
+        3000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.2619493066581527,
+      "v": 0.10336890995856658,
+      "bearing_deg": 81.45631140741705,
+      "altitudes_ft": [
+        1200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.18114647871220488,
+      "v": 0.12730627189134205,
+      "bearing_deg": 79.97707388306208,
+      "altitudes_ft": [
+        1100
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.18001731691306222,
+      "v": 0.15261618049310552,
+      "bearing_deg": 355.95079120629737,
+      "altitudes_ft": [
+        1100
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.23071016841982894,
+      "v": 0.11955014894334533,
+      "bearing_deg": 36.48503415736525,
+      "altitudes_ft": [
+        1200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.4882657378564896,
+      "v": 0.5004598508693046,
+      "bearing_deg": 174.48271512819338,
+      "altitudes_ft": [
+        2200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.5053140950206234,
+      "v": 0.43841881026398094,
+      "bearing_deg": 102.67153730023199,
+      "altitudes_ft": [
+        2600
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.42151308177311303,
+      "v": 0.42902118929856115,
+      "bearing_deg": 144.17197860684735,
+      "altitudes_ft": [
+        3200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.4248965730921234,
+      "v": 0.42029166108337757,
+      "bearing_deg": 103.36401510436883,
+      "altitudes_ft": [
+        3200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.4220439063470765,
+      "v": 0.07307029645992434,
+      "bearing_deg": 111.12200704035092,
+      "altitudes_ft": [
+        2200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.385022266774054,
+      "v": 0.26125770477368104,
+      "bearing_deg": 154.74821031793465,
+      "altitudes_ft": [
+        2700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.5410042994097749,
+      "v": 0.7131180425839798,
+      "bearing_deg": 135.02115347032463,
+      "altitudes_ft": [
+        2200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.39280426933114854,
+      "v": 0.044275616616082134,
+      "bearing_deg": 168.92048332393472,
+      "altitudes_ft": [
+        1700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.3891845762111929,
+      "v": 0.386681607838729,
+      "bearing_deg": 157.27076048555045,
+      "altitudes_ft": [
+        3200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.4103936066558234,
+      "v": 0.19346105927757795,
+      "bearing_deg": 158.5177165190555,
+      "altitudes_ft": [
+        1700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.43209668224924064,
+      "v": 0.09642270753709532,
+      "bearing_deg": 92.57541508843673,
+      "altitudes_ft": [
+        2200
+      ],
+      "bidirectional": true
+    },
+    {
+      "u": 0.30542123645243685,
+      "v": 0.09669995911580302,
+      "bearing_deg": 62.18588133084819,
+      "altitudes_ft": [
+        1200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.42078617771877447,
+      "v": 0.15766339272332133,
+      "bearing_deg": 26.353001933658447,
+      "altitudes_ft": [
+        2000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.4734979166307124,
+      "v": 0.10718682126738144,
+      "bearing_deg": 76.3678510710181,
+      "altitudes_ft": [
+        2500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.48472032938052256,
+      "v": 0.09517379857046404,
+      "bearing_deg": 259.893542944422,
+      "altitudes_ft": [
+        3000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.4037536876548906,
+      "v": 0.16123283404526378,
+      "bearing_deg": 182.20463462783226,
+      "altitudes_ft": [
+        1700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.38107329719750965,
+      "v": 0.09977603464103717,
+      "bearing_deg": 102.65148705507312,
+      "altitudes_ft": [
+        2200
+      ],
+      "bidirectional": true
+    },
+    {
+      "u": 0.5200247221455198,
+      "v": 0.20362936838824564,
+      "bearing_deg": 271.57340233333076,
+      "altitudes_ft": [
+        3000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.4461019543114904,
+      "v": 0.21844850968213933,
+      "bearing_deg": 74.80353720958328,
+      "altitudes_ft": [
+        2200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.6702018499777878,
+      "v": 0.14632878072541966,
+      "bearing_deg": 196.96542789109643,
+      "altitudes_ft": [
+        2300
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.6355009793938976,
+      "v": 0.18355205126495702,
+      "bearing_deg": 248.90821414433208,
+      "altitudes_ft": [
+        2700
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.6619736945827667,
+      "v": 0.17770608513189448,
+      "bearing_deg": 19.522789816400973,
+      "altitudes_ft": [
+        2600
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.557943809432383,
+      "v": 0.21328256578468052,
+      "bearing_deg": 71.69887892134699,
+      "altitudes_ft": [
+        3000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.48469622879418056,
+      "v": 0.2042011069180009,
+      "bearing_deg": 259.7433802097949,
+      "altitudes_ft": [
+        2500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.3404225011433453,
+      "v": 0.08412623584335634,
+      "bearing_deg": 281.44471361205615,
+      "altitudes_ft": [
+        1500
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.33119285295932277,
+      "v": 0.09173045586387094,
+      "bearing_deg": 95.99485092978927,
+      "altitudes_ft": [
+        1200
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.5610493806520088,
+      "v": 0.7824495092105092,
+      "bearing_deg": 237.09310155279871,
+      "altitudes_ft": [
+        1000
+      ],
+      "bidirectional": false
+    },
+    {
+      "u": 0.8320848443108864,
+      "v": 0.43480255696546277,
+      "bearing_deg": 268.3969105473308,
+      "altitudes_ft": [
+        2500
+      ],
+      "bidirectional": false
+    }
+  ]
+}

@@ -32,13 +32,14 @@ import math
 import sqlite3
 from collections.abc import Callable
 from pathlib import Path
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 _LOG = logging.getLogger(__name__)
 
 from PySide6.QtCore import (
     QEvent,
+    QEventLoop,
     QMetaObject,
     QModelIndex,
     QObject,
@@ -52,12 +53,14 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import (
     QAction,
+    QActionGroup,
     QBrush,
     QColor,
     QCloseEvent,
     QCursor,
     QFont,
     QGuiApplication,
+    QImage,
     QKeyEvent,
     QMouseEvent,
     QPainter,
@@ -163,12 +166,15 @@ from cvfr_routemaster.route import (
 from cvfr_routemaster.route_panel import RoutePanel
 from cvfr_routemaster.ui_theme import apply_dark_theme
 from cvfr_routemaster.map_loader import MapLoadWorker, SheetRenderInfo
+from cvfr_routemaster import map_modes
+from cvfr_routemaster import mode_migration
 from cvfr_routemaster.font_settings_dialog import FontSettingsDialog
 from cvfr_routemaster.settings_dialog import SettingsDialog
 from cvfr_routemaster.settings_store import (
     FontSizes,
     load_airplane_font_sizes,
     load_autoload_enabled,
+    load_current_map_mode,
     load_font_sizes,
     load_map_layout,
     load_map_link_provider,
@@ -184,6 +190,7 @@ from cvfr_routemaster.settings_store import (
     load_window_layout,
     save_airplane_font_sizes,
     save_autoload_enabled,
+    save_current_map_mode,
     save_font_sizes,
     save_map_layout,
     save_map_link_provider,
@@ -232,8 +239,17 @@ from cvfr_routemaster.vatsim_feed import (
     load_aircraft_wake_db,
 )
 from cvfr_routemaster.vatsim_worker import VatsimWorker
-from cvfr_routemaster.waypoint_cache import load_cached_waypoints, save_waypoint_cache
-from cvfr_routemaster.waypoints import WaypointRecord, load_waypoints_from_back_pdf, records_to_sqlite
+from cvfr_routemaster.waypoint_cache import (
+    load_cached_waypoints,
+    load_cached_waypoints_multi,
+    save_waypoint_cache,
+    save_waypoint_cache_multi,
+)
+from cvfr_routemaster.waypoints import (
+    WaypointRecord,
+    load_waypoints_for_mode,
+    records_to_sqlite,
+)
 
 
 _COLS = [
@@ -842,18 +858,40 @@ def _make_sim_only_banner() -> QLabel:
 
 
 class WaypointsOcrWorker(QObject):
-    """Runs back-pages OCR on a worker thread (PyMuPDF + Tesseract)."""
+    """Runs reporting-point extraction on a worker thread.
+
+    Mode-aware: the worker is given the active :class:`MapMode` and a
+    map of resolved sheet-key → PDF path, and delegates to
+    :func:`load_waypoints_for_mode`, which selects the vector-hybrid
+    (CVFR) or full-OCR (LSA) strategy, applies the per-source page
+    selector, and merges + dedups across sources.
+    """
 
     finished = Signal(object, object)
     failed = Signal(str)
+    #: ``(done, total, sheet_key)`` — per-source row progress so the GUI
+    #: can show a determinate bar during the slow full-OCR scans instead
+    #: of an indeterminate spinner that reads as a hang.
+    progress = Signal(int, int, str)
 
-    def __init__(self, back_path: str) -> None:
+    def __init__(
+        self,
+        mode: map_modes.MapMode,
+        paths_by_sheet: dict[str, str],
+    ) -> None:
         super().__init__()
-        self._back_path = back_path
+        self._mode = mode
+        self._paths_by_sheet = dict(paths_by_sheet)
 
     def run(self) -> None:
         try:
-            records, tag = load_waypoints_from_back_pdf(self._back_path)
+            records, tag = load_waypoints_for_mode(
+                self._mode,
+                self._paths_by_sheet,
+                progress=lambda done, total, key: self.progress.emit(
+                    done, total, key
+                ),
+            )
             self.finished.emit(records, tag)
         except Exception as exc:  # noqa: BLE001
             self.failed.emit(str(exc))
@@ -926,6 +964,45 @@ class _ChartSeamPartitionBuilder:
         )
 
 
+@dataclass
+class _ModeScene:
+    """All per-map-mode scene state, kept resident so a mode switch is an
+    O(1) ``view.setScene`` rather than a teardown + full rebuild.
+
+    The expensive thing about a switch is the satellite overlay: across the
+    default zoom set it's tens of thousands of ``QGraphicsPixmapItem`` s per
+    sheet, several seconds to create *and* the same again to tear down.
+    Giving each mode its own :class:`QGraphicsScene` lets us build that once
+    per mode and then flip between fully-constructed scenes instantly — the
+    items never move, so satellite-on switching is as fast as chart-mode.
+
+    ``built`` distinguishes a scene that has finished a map load (safe to
+    restore wholesale) from a freshly-created empty one (must go through the
+    normal load path). Every other field mirrors the matching ``MainWindow``
+    attribute; :meth:`MainWindow._snapshot_active_mode_scene` copies the live
+    attributes in and :meth:`MainWindow._restore_mode_scene` copies them back
+    out, so the ~120 read sites of those attributes elsewhere keep working
+    unchanged against whichever mode is currently active.
+    """
+
+    scene: "QGraphicsScene"
+    built: bool = False
+    north_item: "object | None" = None
+    south_item: "object | None" = None
+    geo_north: "object | None" = None
+    geo_south: "object | None" = None
+    north_sat_overlay: "object | None" = None
+    south_sat_overlay: "object | None" = None
+    north_wp_marker_overlay: "object | None" = None
+    south_wp_marker_overlay: "object | None" = None
+    render_info_by_sheet: dict = field(default_factory=dict)
+    route_overlay_item: "object | None" = None
+    route_origin_marker_item: "object | None" = None
+    selected: str = "south"
+    altitude_arrows_north: list = field(default_factory=list)
+    altitude_arrows_south: list = field(default_factory=list)
+
+
 # ---------------------------------------------------------------------------
 # Chart-source helpers (module-level so tests can exercise them without
 # spinning up a full MainWindow)
@@ -938,6 +1015,7 @@ _SHEET_KEY_BY_INDEX: tuple[str, ...] = ("north", "south", "back")
 def _resolve_chart_sources_silent(
     sources: tuple[str, str, str],
     project_root: Path,
+    mode_id: str | None = None,
 ) -> tuple[str, str, str]:
     """Eagerly resolve URL-cached sources to their local-file paths
     WITHOUT triggering any network call.
@@ -974,8 +1052,10 @@ def _resolve_chart_sources_silent(
         if chart_src.is_url:
             try:
                 normalized = chart_src.normalized_url()
-                if not needs_download(sheet_key, normalized, project_root):
-                    resolved.append(str(cache_path_for_sheet(sheet_key, project_root)))
+                if not needs_download(sheet_key, normalized, project_root, mode_id):
+                    resolved.append(
+                        str(cache_path_for_sheet(sheet_key, project_root, mode_id))
+                    )
                     continue
             except (ValueError, OSError):
                 # Defensive: a corrupt cache dir / manifest must
@@ -1041,6 +1121,23 @@ class MainWindow(QMainWindow):
         self._calibration_overlay: QLabel | None = None
         self._calibration_reticle_cursor: QCursor | None = None
         self._project_root = project_root
+        # v4 map-mode resolution. Run the one-time v3.3→v4 relocation
+        # (copies legacy flat CVFR caches/settings into the ``cvfr``
+        # namespace; idempotent and non-destructive) BEFORE any cache
+        # or settings read below, so the active mode reads its
+        # namespaced state. ``coerce_mode_id`` falls back to CVFR if
+        # the persisted id names a mode this build doesn't ship.
+        try:
+            mode_migration.migrate_v33_to_v4(project_root)
+        except OSError:
+            # A read-only / full disk must not block startup; the app
+            # falls back to reading whatever namespaced state exists
+            # (or the flat seeds on a fresh release).
+            pass
+        self._map_mode_id: str = map_modes.coerce_mode_id(
+            load_current_map_mode()
+        )
+        self._map_mode: map_modes.MapMode = map_modes.get_mode(self._map_mode_id)
         self._did_place_window = False
         self.setWindowTitle(app_title())
         # Title-bar icon. Qt sources the title-bar icon from the
@@ -1084,7 +1181,7 @@ class MainWindow(QMainWindow):
             self._source_north,
             self._source_south,
             self._source_back,
-        ) = load_pdf_paths(project_root)
+        ) = load_pdf_paths(project_root, self._map_mode_id)
         (
             self._north_path,
             self._south_path,
@@ -1092,6 +1189,7 @@ class MainWindow(QMainWindow):
         ) = _resolve_chart_sources_silent(
             (self._source_north, self._source_south, self._source_back),
             project_root,
+            mode_id=self._map_mode_id,
         )
         layout_diag.log(
             "session.paths",
@@ -1108,6 +1206,14 @@ class MainWindow(QMainWindow):
         self._db.row_factory = sqlite3.Row
 
         self._scene = QGraphicsScene(self)
+        # One resident scene per map mode (lazily populated). The active
+        # mode's scene is ``self._scene``; switching to an already-built
+        # mode is a wholesale attribute restore + ``view.setScene`` rather
+        # than a teardown + rebuild, so it's instant even with satellite
+        # imagery on. See :class:`_ModeScene`.
+        self._mode_scenes: dict[str, _ModeScene] = {
+            self._map_mode_id: _ModeScene(scene=self._scene)
+        }
         self._north_item: _ChartSheetItem | None = None
         self._south_item: _ChartSheetItem | None = None
         self._selected: str = "south"
@@ -1326,6 +1432,19 @@ class MainWindow(QMainWindow):
         self._view.viewport_changed.connect(
             self._update_view_info_label
         )
+        # Startup re-fit. When a map finishes loading the view is
+        # fitted/restored synchronously, but at startup the QGraphicsView
+        # viewport may not be at its final laid-out size yet (splitter still
+        # settling), so that fit lands against a transient geometry and the
+        # user sees a black panel (the "2nd-launch LSA black, fine after a
+        # mode switch" report). While ``_map_view_layout_pending`` is set we
+        # re-apply the saved view on every *genuine resize* (the dedicated
+        # ``view_resized`` signal — NOT ``viewport_changed``, which also fires
+        # for the programmatic saved-scroll restore at the same size and would
+        # otherwise look like "settled"). A short settle timer clears the flag
+        # so later manual resizes don't clobber the user's navigation.
+        self._map_view_layout_pending = False
+        self._view.view_resized.connect(self._reapply_view_on_resize)
 
         self._wp_model = QStandardItemModel(0, len(_COLS))
         self._wp_model.setHorizontalHeaderLabels(_COLS)
@@ -1512,6 +1631,13 @@ class MainWindow(QMainWindow):
         # the route on demand (via _refresh_route_panel) and emits speed_changed when the
         # user adjusts the cruise speed; we re-render on either kind of change.
         self._route = Route()
+        # Per-mode in-memory route. Switching map type stashes the
+        # current mode's route here and restores the target mode's, so a
+        # half-planned CVFR route survives a detour into LSA and back
+        # within one session (nothing is persisted to disk — this is a
+        # session convenience, matching how the route itself isn't saved
+        # across launches unless the user explicitly saves a plan).
+        self._route_by_mode: dict[str, Route] = {}
         self._route_panel = RoutePanel()
         self._route_panel.speed_changed.connect(self._on_route_speed_changed)
         self._route_panel.route_point_clicked.connect(self._on_route_point_clicked)
@@ -1577,6 +1703,28 @@ class MainWindow(QMainWindow):
         self._wp_ocr_worker: WaypointsOcrWorker | None = None
         self._waypoints_ocr_then_maps: bool = True
         self._progress: QProgressDialog | None = None
+
+        # In-memory rendered-chart cache, keyed by mode id. Each entry is
+        # ``(QImage north, QImage south, render_info)`` captured the first
+        # time a mode's maps finish loading this session. A mode switch
+        # whose target is cached skips the worker thread + PNG decode + file
+        # read entirely and rebuilds the scene synchronously, so flipping
+        # CVFR↔LSA is near-instant after each mode has been visited once.
+        # The inactive mode(s) are also warmed in the background right after
+        # the active mode loads (see ``_preload_other_modes_in_background``),
+        # so even the first switch is fast — at the cost of holding both
+        # modes' decoded sheets resident. QImage (not QPixmap) is stored so
+        # the off-thread preload worker can populate it safely; conversion to
+        # QPixmap happens on the GUI thread in ``_finalize_map_images``.
+        self._map_image_cache: dict[
+            str, tuple[QImage, QImage, dict[str, SheetRenderInfo]]
+        ] = {}
+        # Background preload plumbing (one transient worker/thread at a time;
+        # a small queue of mode ids still to warm).
+        self._preload_thread: QThread | None = None
+        self._preload_worker: MapLoadWorker | None = None
+        self._preload_queue: list[str] = []
+        self._preload_active_mode: str | None = None
 
         # Altitude-arrow extraction state.
         #
@@ -1720,28 +1868,50 @@ class MainWindow(QMainWindow):
         explicitly cleared one or more fields; let them open Settings
         themselves.
         """
-        if not load_autoload_enabled():
+        enabled = load_autoload_enabled()
+        sources_set = self._sources_set()
+        layout_diag.log(
+            "autoload.gate",
+            mode=self._map_mode_id,
+            enabled=int(enabled),
+            sources_set=int(sources_set),
+            src_n=int(bool(self._source_north)),
+            src_s=int(bool(self._source_south)),
+            src_b=int(bool(self._source_back)),
+        )
+        if not enabled:
             return
-        if not self._sources_set():
+        if not sources_set:
             return
         self._load_all()
 
     def _sources_set(self) -> bool:
-        """True iff all three chart sources (north, south, back) are
-        configured.
+        """True iff every chart source the *active mode* declares is configured.
+
+        Gated on the active mode's own ``sheet_keys`` — NOT a fixed
+        north/south/back triple. CVFR is a 3-sheet product (north, south,
+        back-pages); LSA is a 2-sheet product with no back page, so its
+        ``_source_back`` is legitimately empty. The old fixed-triple check
+        treated that empty back as "sources not set" and silently skipped
+        autoload whenever LSA was the active mode on launch — the map never
+        built and the user saw a black viewport until a mode toggle ran
+        ``_load_all`` directly (which is mode-aware). Checking only the
+        sources the mode actually uses fixes that second-launch-in-LSA black
+        screen.
 
         Each entry may be a local file path or an HTTP(S) URL — we
         don't validate the value here; the actual download / file
         open happens later in ``_load_all`` →
         ``_ensure_chart_sources_resolved``.
         """
+        source_by_key = {
+            "north": self._source_north,
+            "south": self._source_south,
+            "back": self._source_back,
+        }
         return all(
-            bool(s)
-            for s in (
-                self._source_north,
-                self._source_south,
-                self._source_back,
-            )
+            bool(source_by_key.get(key, ""))
+            for key in self._map_mode.sheet_keys
         )
 
     def _apply_splitter_ratio(self) -> None:
@@ -1872,6 +2042,34 @@ class MainWindow(QMainWindow):
         # test selector that locates an action by object name
         # continues to work.
         # ------------------------------------------------------------
+
+        # Map Type switcher — one checkable toggle button per registered
+        # chart product (CVFR, LSA, …), styled exactly like the View
+        # Toggles: the selected product glows Garmin green. The buttons
+        # live in an exclusive :class:`QActionGroup` so exactly one is
+        # lit; clicking a different one calls ``_switch_map_mode``, which
+        # reloads that product's maps and waypoints. (A one-button-per-
+        # mode row matches the user's Garmin-style toggle expectation; if
+        # the registry ever grows past a handful of modes this can revert
+        # to a popup.)
+        self._map_mode_action_group = QActionGroup(self)
+        self._map_mode_action_group.setExclusive(True)
+        self._map_mode_actions: dict[str, QAction] = {}
+        for mode in map_modes.all_modes():
+            act_mode = QAction(mode.switcher_label, self)
+            act_mode.setObjectName(f"act_map_mode_{mode.mode_id}")
+            act_mode.setCheckable(True)
+            act_mode.setChecked(mode.mode_id == self._map_mode_id)
+            act_mode.setToolTip(
+                f"Switch to the {mode.display_name} chart product. Each "
+                "map type keeps its own sources, calibration, waypoints, "
+                "and route; switching reloads the selected product."
+            )
+            act_mode.triggered.connect(
+                lambda _checked=False, mid=mode.mode_id: self._switch_map_mode(mid)
+            )
+            self._map_mode_action_group.addAction(act_mode)
+            self._map_mode_actions[mode.mode_id] = act_mode
 
         act_settings = QAction("Map File Settings…", self)
         act_settings.setObjectName("act_open_map_file_settings")
@@ -2041,6 +2239,11 @@ class MainWindow(QMainWindow):
         # toolbar.
         # ------------------------------------------------------------
 
+        map_type_group = self._make_toolbar_group(
+            "Map Type",
+            "group_map_type",
+            list(self._map_mode_actions.values()),
+        )
         program_group = self._make_toolbar_group(
             "Program Settings",
             "group_program_settings",
@@ -2103,7 +2306,8 @@ class MainWindow(QMainWindow):
         # mouses over an already-checked button (Qt's default
         # hover visual is suppressed by our background-color rule).
         tb.setStyleSheet(
-            "QFrame#group_program_settings,"
+            "QFrame#group_map_type,"
+            " QFrame#group_program_settings,"
             " QFrame#group_view_toggles,"
             " QFrame#group_satellite_view_options,"
             " QFrame#group_program_information {"
@@ -2112,14 +2316,16 @@ class MainWindow(QMainWindow):
             "    margin: 2px 4px;"
             "    padding: 2px 4px;"
             "}"
-            "QLabel#group_program_settings_title,"
+            "QLabel#group_map_type_title,"
+            " QLabel#group_program_settings_title,"
             " QLabel#group_view_toggles_title,"
             " QLabel#group_satellite_view_options_title,"
             " QLabel#group_program_information_title {"
             "    font-weight: bold;"
             "    padding-bottom: 2px;"
             "}"
-            "QFrame#group_program_settings QToolButton:checked,"
+            "QFrame#group_map_type QToolButton:checked,"
+            " QFrame#group_program_settings QToolButton:checked,"
             " QFrame#group_view_toggles QToolButton:checked,"
             " QFrame#group_satellite_view_options QToolButton:checked,"
             " QFrame#group_program_information QToolButton:checked {"
@@ -2129,13 +2335,15 @@ class MainWindow(QMainWindow):
             "    border-radius: 4px;"
             "    padding: 2px 6px;"
             "}"
-            "QFrame#group_program_settings QToolButton:checked:hover,"
+            "QFrame#group_map_type QToolButton:checked:hover,"
+            " QFrame#group_program_settings QToolButton:checked:hover,"
             " QFrame#group_view_toggles QToolButton:checked:hover,"
             " QFrame#group_satellite_view_options QToolButton:checked:hover,"
             " QFrame#group_program_information QToolButton:checked:hover {"
             "    background-color: #26954c;"
             "}"
-            "QFrame#group_program_settings QToolButton:checked:pressed,"
+            "QFrame#group_map_type QToolButton:checked:pressed,"
+            " QFrame#group_program_settings QToolButton:checked:pressed,"
             " QFrame#group_view_toggles QToolButton:checked:pressed,"
             " QFrame#group_satellite_view_options QToolButton:checked:pressed,"
             " QFrame#group_program_information QToolButton:checked:pressed {"
@@ -2144,6 +2352,7 @@ class MainWindow(QMainWindow):
         )
 
         tb.addWidget(program_group)
+        tb.addWidget(map_type_group)
         tb.addWidget(view_toggles_group)
         tb.addWidget(satellite_group)
         tb.addWidget(program_info_group)
@@ -3093,28 +3302,47 @@ class MainWindow(QMainWindow):
             for coord in all_misses:
                 self._satellite_enqueue_tile.emit(coord)
 
-    def _build_satellite_overlays(self) -> None:
+    def _build_satellite_overlays(
+        self, on_zoom_progress: "Callable[[int, int], None] | None" = None
+    ) -> None:
         """Construct per-sheet :class:`SatelliteOverlay` instances.
 
-        Called from :meth:`_on_map_finished` after the chart
-        pixmap items + calibrations are in place. Each overlay
-        enumerates every Web Mercator tile in its sheet's lat/lon
-        bbox and creates one ``QGraphicsPixmapItem`` per tile,
-        parented to the chart pixmap (so chart pan/zoom carries
-        the overlay along automatically). Eager construction of
-        the items is cheap (~5000 items per sheet at z=14, well
-        under 50 ms in practice); pixmap *loading* is lazy in the
-        sense that only tiles already on disk get their real
-        pixmap immediately — the rest sit on the "Loading Tile…"
-        placeholder until the bulk-fetch worker writes them or
-        the on-demand fetcher (Phase 7e) brings them in.
+        Each overlay enumerates every Web Mercator tile in its sheet's
+        lat/lon bbox across the configured zoom levels and creates one
+        :class:`QGraphicsPixmapItem` per tile, parented to the chart
+        pixmap (so chart pan/zoom carries the overlay along). Pixmap
+        *loading* is lazy — only on-disk tiles get a real pixmap; the
+        rest sit on the "Loading Tile…" placeholder.
 
-        A sheet without a calibration (e.g. user hasn't placed
-        anchors yet) gets no overlay — calling ``set_visible`` on
-        a ``None`` overlay is a no-op so the toolbar toggle stays
-        functional in that state, just with no satellite imagery
-        for the un-calibrated sheet.
+        **Built on demand, not eagerly.** Across the default
+        ``[12, 13, 14, 15]`` zoom set both sheets total *tens of
+        thousands* of items — multiple seconds to create and the same
+        again to tear down. Doing that on every map load / mode switch
+        while the user is in plain-chart mode was the dominant cost of a
+        switch (the "10-12 s, bar stuck at ~50 %" report). So when
+        satellite view is **off** this is a near-instant no-op; the real
+        construction is deferred to the first time the user turns
+        satellite view on (:meth:`_on_show_satellite_toggled`, which
+        calls back here once the toggle is checked).
+
+        Idempotent: any existing tile overlays are torn down first, so
+        this is safe to call both at map-finish and lazily on toggle-on.
+
+        A sheet without a calibration (e.g. user hasn't placed anchors
+        yet) gets no overlay — calling ``set_visible`` on a ``None``
+        overlay is a no-op so the toolbar toggle stays functional.
         """
+        # Drop any prior tile overlays so a lazy rebuild (toggle-on, or
+        # re-call after calibration) never leaks the old item set.
+        for ov in (self._north_sat_overlay, self._south_sat_overlay):
+            if ov is not None:
+                ov.teardown()
+        self._north_sat_overlay = None
+        self._south_sat_overlay = None
+        # Skip the expensive enumeration entirely while satellite view is
+        # off. ``_on_show_satellite_toggled`` rebuilds on demand.
+        if not bool(self._act_show_satellite.isChecked()):
+            return
         cache = self._satellite_tile_cache()
         zoom_levels = self._satellite_zoom_levels()
         sat_visible = bool(self._act_show_satellite.isChecked())
@@ -3144,7 +3372,7 @@ class MainWindow(QMainWindow):
         # south's visible territory stays identical to the
         # un-extended partition; the only visible delta of the
         # extension is the gap-sliver north now paints into.
-        for chart_item, cal, partition_for_sheet, sheet_z_bump, set_overlay in (
+        sheets = [
             (
                 self._north_item,
                 self._geo_north,
@@ -3159,7 +3387,31 @@ class MainWindow(QMainWindow):
                 0.005,
                 lambda ov: setattr(self, "_south_sat_overlay", ov),
             ),
-        ):
+        ]
+        # Total per-zoom build steps for the granular progress callback:
+        # one per (valid sheet × zoom level). Counting only sheets that will
+        # actually build keeps the reported total honest if a sheet is
+        # skipped (no calibration / zero-size pixmap).
+        def _sheet_builds(item, cal) -> bool:
+            if item is None or cal is None:
+                return False
+            pm = item.pixmap()
+            return int(pm.width()) > 0 and int(pm.height()) > 0
+
+        total_steps = max(
+            1,
+            sum(1 for it, cl, *_ in sheets if _sheet_builds(it, cl))
+            * max(1, len(zoom_levels)),
+        )
+        progress_done = [0]
+
+        def _on_zoom(_idx: int, _n: int) -> None:
+            progress_done[0] += 1
+            if on_zoom_progress is not None:
+                on_zoom_progress(progress_done[0], total_steps)
+
+        built = 0
+        for chart_item, cal, partition_for_sheet, sheet_z_bump, set_overlay in sheets:
             if chart_item is None or cal is None:
                 continue
             pix = chart_item.pixmap()
@@ -3176,18 +3428,55 @@ class MainWindow(QMainWindow):
                 initial_view_scale=initial_scale,
                 chart_seam_partition=partition_for_sheet,
                 sheet_z_bump=sheet_z_bump,
+                on_zoom_built=_on_zoom,
             )
             ov.set_visible(sat_visible)
             set_overlay(ov)
+            # Nudge the load progress bar between the two (multi-second)
+            # per-sheet builds so a cold load with satellite already on
+            # shows motion rather than parking at one value. No-op when no
+            # progress dialog is up (the toggle-on / recalibration rebuild
+            # paths), so it's always safe to call here.
+            built += 1
+            self._set_finalize_progress(min(94, 70 + built * 12))
 
-        # Waypoint marker overlays sit on top of the satellite
-        # tiles so VRPs stay visible (and clickable for the
-        # routing pipeline) when satellite imagery covers the
-        # chart's printed triangles. Built right after the
-        # satellite overlays so they share the same per-sheet
-        # construction path; lifecycle in ``_clear_map_items``
-        # tears both down together.
-        self._build_waypoint_marker_overlays()
+    def _build_satellite_overlays_with_progress(self) -> None:
+        """Build the satellite tile overlays behind a responsive dialog.
+
+        The construction enumerates tens of thousands of
+        :class:`QGraphicsPixmapItem` instances synchronously on the GUI
+        thread (~3-5 s). It can't move off-thread — Qt graphics items are
+        GUI-thread-only — so without feedback the window greys out and reads
+        as "(Not Responding)". Instead we show a *determinate* dialog and
+        drive it from the per-zoom build callback, pumping the event loop on
+        each step so the bar advances and the dialog repaints. The dialog is
+        modal so no re-entrant toggle can fire mid-build."""
+        dlg = QProgressDialog(self)
+        dlg.setWindowTitle("Satellite view")
+        dlg.setLabelText(
+            "Preparing satellite tiles\u2026\nThis happens once per session."
+        )
+        dlg.setRange(0, 100)
+        dlg.setValue(0)
+        dlg.setCancelButton(None)
+        dlg.setWindowModality(Qt.WindowModality.WindowModal)
+        dlg.setMinimumDuration(0)
+        dlg.show()
+        QApplication.processEvents()
+
+        def _cb(done: int, total: int) -> None:
+            pct = int(100 * done / total) if total else 100
+            dlg.setValue(max(0, min(100, pct)))
+            QApplication.processEvents(
+                QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents
+            )
+
+        try:
+            self._build_satellite_overlays(on_zoom_progress=_cb)
+        finally:
+            dlg.setValue(100)
+            dlg.close()
+            dlg.deleteLater()
 
     def _build_waypoint_marker_overlays(self) -> None:
         """Construct per-sheet :class:`WaypointMarkerOverlay` instances.
@@ -3344,6 +3633,7 @@ class MainWindow(QMainWindow):
                 ov.teardown()
                 setattr(self, attr, None)
         self._build_satellite_overlays()
+        self._build_waypoint_marker_overlays()
         if self._act_show_satellite.isChecked():
             self._update_satellite_visibility()
 
@@ -3574,6 +3864,19 @@ class MainWindow(QMainWindow):
         # Refresh the map-hint to add/remove the satellite
         # loading-logic explainer line as the toggle flips.
         self._update_map_hint_text()
+
+        # Lazily construct the (expensive) tile overlays the first time
+        # satellite view is turned on this load. They're deferred out of
+        # the map-load finalize so plain-chart mode switches stay fast;
+        # building here means the user pays the one-time construction cost
+        # only when they actually want imagery. The toggle is already
+        # checked at this point, so ``_build_satellite_overlays`` proceeds.
+        if (
+            on
+            and self._north_sat_overlay is None
+            and self._south_sat_overlay is None
+        ):
+            self._build_satellite_overlays_with_progress()
 
         # Flip overlay visibility. The chart pixmap stays visible
         # always — tiles cover it where loaded, placeholder covers
@@ -4308,6 +4611,11 @@ class MainWindow(QMainWindow):
                 self._vatsim_thread,
                 self._satellite_thread,
                 self._satellite_demand_thread,
+                # Background map preload (no polite-stop slot — it's a
+                # one-shot render; the brief wait + terminate fallback in
+                # ``_force_stop_threads`` keeps shutdown snappy if the user
+                # closes mid-preload).
+                self._preload_thread,
             ],
             polite_timeout_ms=polite_timeout_ms,
             force_timeout_ms=force_timeout_ms,
@@ -4315,6 +4623,10 @@ class MainWindow(QMainWindow):
         self._vatsim_thread = None
         self._satellite_thread = None
         self._satellite_demand_thread = None
+        self._preload_thread = None
+        self._preload_worker = None
+        self._preload_active_mode = None
+        self._preload_queue = []
         # Clear worker refs too — the Qt-side ``deleteLater``
         # wiring on ``finished`` will (or has) handled the actual
         # destruction; we just drop our Python handles so any
@@ -5637,11 +5949,18 @@ class MainWindow(QMainWindow):
         if not self._waypoints_export:
             QMessageBox.information(self, "Calibration", "Load waypoints first.")
             return
+        # Overlap (seam) anchors are per-mode: CVFR pins SDROT/OMMER/ENGDI
+        # in its north↔south overlap strip; other modes supply their own
+        # seam VRP codes (an empty tuple means "no seam pinning — edge
+        # anchors only", which is a valid single-or-non-overlapping layout).
+        mode_overlap_codes = self._map_mode.overlap_codes
+        n_overlap = min(_CALIBRATION_OVERLAP_ANCHOR_TARGET, len(mode_overlap_codes))
         anchors = select_anchors_for_sheet(
             self._waypoints_export,
             sheet,
             _CALIBRATION_EDGE_ANCHOR_TARGET,
-            n_overlap=_CALIBRATION_OVERLAP_ANCHOR_TARGET,
+            n_overlap=n_overlap,
+            preferred_overlap_codes=mode_overlap_codes,
         )
         if anchors is None or len(anchors) < MIN_ANCHORS:
             QMessageBox.warning(
@@ -5660,8 +5979,14 @@ class MainWindow(QMainWindow):
         # or the band was too sparse), so we re-derive the set from the actual
         # returned list and the database rather than assuming the requested
         # count was honoured.
-        overlap_anchors = select_overlap_anchors(
-            self._waypoints_export, n=_CALIBRATION_OVERLAP_ANCHOR_TARGET
+        overlap_anchors = (
+            select_overlap_anchors(
+                self._waypoints_export,
+                n=n_overlap,
+                preferred_codes=mode_overlap_codes,
+            )
+            if n_overlap >= 1
+            else ()
         )
         overlap_codes = {r.code.casefold() for r in overlap_anchors}
         self._calibrate_state = {
@@ -6373,7 +6698,7 @@ class MainWindow(QMainWindow):
         """
         if self._north_item is None or self._south_item is None:
             return
-        raw = load_saved_calibration(self._project_root)
+        raw = load_saved_calibration(self._project_root, self._map_mode_id)
         north_block = raw.get("north") if isinstance(raw, dict) else None
         south_block = raw.get("south") if isinstance(raw, dict) else None
         if not isinstance(north_block, dict) or not isinstance(south_block, dict):
@@ -6442,7 +6767,7 @@ class MainWindow(QMainWindow):
         # mismatch.
         north_block["map_layout"] = dict(target_n)
         south_block["map_layout"] = dict(target_s)
-        save_calibration_payload(self._project_root, raw)
+        save_calibration_payload(self._project_root, raw, self._map_mode_id)
         # Also rewrite ``map_layout.json`` so a *no-calibration-present*
         # restart path lands on the same numbers rather than the stale
         # buggy layout.
@@ -6525,7 +6850,7 @@ class MainWindow(QMainWindow):
     def _persist_geo_calibration(self) -> None:
         payload = build_payload(self._geo_north, self._geo_south)
         try:
-            save_calibration_payload(self._project_root, payload)
+            save_calibration_payload(self._project_root, payload, self._map_mode_id)
         except OSError:
             pass
 
@@ -6546,7 +6871,7 @@ class MainWindow(QMainWindow):
         the current on-screen position/scale. Returns user-facing issue lines for
         any sheet that must be (re)calibrated.
         """
-        raw = load_saved_calibration(self._project_root)
+        raw = load_saved_calibration(self._project_root, self._map_mode_id)
         n_path = Path(self._north_path) if self._north_path else None
         s_path = Path(self._south_path) if self._south_path else None
         n_layout = self._current_sheet_layout("north")
@@ -6702,6 +7027,207 @@ class MainWindow(QMainWindow):
         self._fit_map()
         self.statusBar().showMessage("Map layout reset to default.", 6000)
 
+    def _sync_map_mode_checked(self) -> None:
+        """Light the active mode's toggle button (and unlight the rest)."""
+        for mode_id, action in self._map_mode_actions.items():
+            action.setChecked(mode_id == self._map_mode_id)
+
+    def _snapshot_active_mode_scene(self) -> None:
+        """Copy the live per-mode scene attributes into the active bundle.
+
+        Called before switching away so the scene (chart pixmaps, satellite
+        tiles, markers, route overlay, calibration, altitudes) stays resident
+        and a later switch back is a wholesale restore rather than a rebuild.
+        """
+        bundle = self._mode_scenes.get(self._map_mode_id)
+        if bundle is None:
+            bundle = _ModeScene(scene=self._scene)
+            self._mode_scenes[self._map_mode_id] = bundle
+        bundle.scene = self._scene
+        bundle.north_item = self._north_item
+        bundle.south_item = self._south_item
+        bundle.geo_north = self._geo_north
+        bundle.geo_south = self._geo_south
+        bundle.north_sat_overlay = self._north_sat_overlay
+        bundle.south_sat_overlay = self._south_sat_overlay
+        bundle.north_wp_marker_overlay = self._north_wp_marker_overlay
+        bundle.south_wp_marker_overlay = self._south_wp_marker_overlay
+        bundle.render_info_by_sheet = self._render_info_by_sheet
+        bundle.route_overlay_item = self._route_overlay_item
+        bundle.route_origin_marker_item = self._route_origin_marker_item
+        bundle.selected = self._selected
+        bundle.altitude_arrows_north = self._altitude_arrows_north
+        bundle.altitude_arrows_south = self._altitude_arrows_south
+
+    def _restore_mode_scene(self, bundle: _ModeScene) -> None:
+        """Make ``bundle`` the live scene — an O(1) swap, no teardown.
+
+        Repoints ``self._scene`` and every per-mode attribute at the stored
+        bundle and hands the view + traffic overlay the restored scene. The
+        ~120 call sites that read these attributes elsewhere keep operating
+        on whatever mode is active, with no edits needed."""
+        self._scene = bundle.scene
+        self._view.setScene(self._scene)
+        self._traffic_overlay.set_scene(self._scene)
+        self._north_item = bundle.north_item  # type: ignore[assignment]
+        self._south_item = bundle.south_item  # type: ignore[assignment]
+        self._geo_north = bundle.geo_north  # type: ignore[assignment]
+        self._geo_south = bundle.geo_south  # type: ignore[assignment]
+        self._north_sat_overlay = bundle.north_sat_overlay
+        self._south_sat_overlay = bundle.south_sat_overlay
+        self._north_wp_marker_overlay = bundle.north_wp_marker_overlay
+        self._south_wp_marker_overlay = bundle.south_wp_marker_overlay
+        self._render_info_by_sheet = bundle.render_info_by_sheet
+        self._route_overlay_item = bundle.route_overlay_item  # type: ignore[assignment]
+        self._route_origin_marker_item = (
+            bundle.route_origin_marker_item  # type: ignore[assignment]
+        )
+        self._selected = bundle.selected
+        self._altitude_arrows_north = bundle.altitude_arrows_north
+        self._altitude_arrows_south = bundle.altitude_arrows_south
+
+    def _activate_fresh_mode_scene(self, mode_id: str) -> None:
+        """Swap in a brand-new empty scene for ``mode_id`` and null the live
+        per-mode attributes so the normal load pipeline builds into it
+        without touching the just-snapshotted outgoing scene."""
+        scene = QGraphicsScene(self)
+        self._scene = scene
+        self._view.setScene(scene)
+        self._traffic_overlay.set_scene(scene)
+        self._north_item = None
+        self._south_item = None
+        self._geo_north = None
+        self._geo_south = None
+        self._north_sat_overlay = None
+        self._south_sat_overlay = None
+        self._north_wp_marker_overlay = None
+        self._south_wp_marker_overlay = None
+        self._render_info_by_sheet = {}
+        self._route_overlay_item = None
+        self._route_origin_marker_item = None
+        self._altitude_arrows_north = []
+        self._altitude_arrows_south = []
+        self._mode_scenes[mode_id] = _ModeScene(scene=scene)
+
+    def _sync_restored_satellite_state(self) -> None:
+        """Reconcile a restored scene's satellite overlays with the current
+        toolbar toggle.
+
+        A scene may have been built while satellite view was off (no tile
+        overlays) and the user has since turned it on — or vice versa. Build
+        on demand when needed, then push visibility + the current viewport so
+        tiles for the restored mode start loading immediately."""
+        sat_on = bool(self._act_show_satellite.isChecked())
+        if (
+            sat_on
+            and self._north_sat_overlay is None
+            and self._south_sat_overlay is None
+        ):
+            self._build_satellite_overlays()
+        for ov in (self._north_sat_overlay, self._south_sat_overlay):
+            if ov is not None:
+                ov.set_visible(sat_on)
+        for wp in (self._north_wp_marker_overlay, self._south_wp_marker_overlay):
+            if wp is not None:
+                wp.set_visible(sat_on)
+        if sat_on:
+            self._update_satellite_visibility()
+
+    def _switch_map_mode(self, new_mode_id: str) -> None:
+        """Switch the active chart product and reload its maps + waypoints.
+
+        Each mode owns an independent namespace (sources, calibration,
+        rendered PNGs, waypoint cache, altitude cache) plus an in-memory
+        route kept in :attr:`_route_by_mode`. Switching:
+
+        1. persists the current mode's viewport so returning restores it;
+        2. stashes the current in-memory route and restores the target's;
+        3. flips the active-mode identity and persists it globally;
+        4. re-resolves the target mode's configured sources;
+        5. tears down the current scene and re-runs :meth:`_load_all`,
+           which rebuilds the maps, waypoints, calibration, and overlays
+           for the new mode (or prompts for sources if the mode is
+           unconfigured).
+        """
+        new_mode_id = map_modes.coerce_mode_id(new_mode_id)
+        if new_mode_id == self._map_mode_id:
+            # Re-assert the toggle (a re-trigger of the already-active
+            # action can momentarily uncheck it) and bail.
+            self._sync_map_mode_checked()
+            return
+
+        # 0 — instant feedback. The steps below (viewport persist, scene
+        # teardown of the outgoing mode's satellite + waypoint overlays, and
+        # source resolution) all run synchronously on the UI thread *before*
+        # ``_load_all`` would otherwise create its dialog, so the user saw a
+        # multi-second frozen window before any bar appeared. Raise the modal
+        # first so the click registers immediately; ``_load_all`` reuses it.
+        self._ensure_progress_dialog(
+            f"Switching to {map_modes.get_mode(new_mode_id).display_name}\u2026"
+        )
+
+        # 1 — persist the outgoing mode's viewport (only meaningful once a
+        # chart is on screen; harmless to skip when nothing is loaded), then
+        # snapshot the outgoing scene so it stays resident and can be
+        # restored instantly on the way back.
+        if self._north_item is not None and self._south_item is not None:
+            try:
+                self._persist_map_view_navigation()
+            except (RuntimeError, OSError):
+                pass
+        self._snapshot_active_mode_scene()
+
+        # 2 — stash outgoing route, restore the incoming mode's route.
+        # Explicit ``is None`` check (not ``or``): an empty Route is
+        # falsy, so ``stashed or Route()`` would throw away a previously
+        # stored empty route and break object-identity round-tripping.
+        self._route_by_mode[self._map_mode_id] = self._route
+        stashed = self._route_by_mode.get(new_mode_id)
+        self._route = stashed if stashed is not None else Route()
+
+        # 3 — flip identity and persist (global, survives switches).
+        self._map_mode_id = new_mode_id
+        self._map_mode = map_modes.get_mode(new_mode_id)
+        save_current_map_mode(new_mode_id)
+        self._sync_map_mode_checked()
+
+        # 4 — resolve the target mode's configured sources. Reset the
+        # resolved-path triple first so a partially-configured mode can't
+        # inherit the previous mode's local paths.
+        n, s, b = load_pdf_paths(self._project_root, new_mode_id)
+        self._source_north, self._source_south, self._source_back = n, s, b
+        self._north_path = self._south_path = self._back_path = ""
+        (
+            self._north_path,
+            self._south_path,
+            self._back_path,
+        ) = _resolve_chart_sources_silent(
+            (n, s, b), self._project_root, mode_id=new_mode_id
+        )
+
+        # 5 — activate the target mode's scene. If it's already built this
+        # session, restore it wholesale — an O(1) ``view.setScene`` that
+        # keeps every chart/satellite/marker item exactly where it was, so
+        # the switch is instant even with satellite imagery on. Otherwise
+        # spin up a fresh empty scene and run the normal load pipeline,
+        # which builds into it (and marks it built for next time).
+        target = self._mode_scenes.get(new_mode_id)
+        if target is not None and target.built:
+            self._restore_mode_scene(target)
+            self._refresh_route_panel()
+            self._sync_restored_satellite_state()
+            self._apply_saved_map_view()
+            self.statusBar().showMessage(
+                f"Switched to {self._map_mode.display_name} (resident).", 6000
+            )
+            self._set_finalize_progress(100)
+            self._cleanup_progress_dialog()
+            return
+        self._activate_fresh_mode_scene(new_mode_id)
+        self._pump_progress()
+        self._refresh_route_panel()
+        self._load_all()
+
     def _open_settings(self) -> None:
         """Open *Map File Settings*. Two acceptable return codes:
 
@@ -6721,19 +7247,38 @@ class MainWindow(QMainWindow):
         immediately (avoids requiring the user to "click Load now"
         when the cache happens to be warm).
         """
+        # The dialog renders one field per configured sheet of the
+        # active mode (CVFR: north/south/back; LSA: north/south). Sheets
+        # the mode doesn't declare keep whatever source string they
+        # already held (empty for LSA's absent back sheet), so the
+        # north/south/back storage triple stays intact for CVFR.
+        source_by_sheet = {
+            "north": self._source_north,
+            "south": self._source_south,
+            "back": self._source_back,
+        }
         dlg = SettingsDialog(
-            self._source_north,
-            self._source_south,
-            self._source_back,
+            sheets=[
+                (key, source_by_sheet.get(key, ""))
+                for key in self._map_mode.sheet_keys
+            ],
             autoload_on_start=load_autoload_enabled(),
             parent=self,
         )
         code = dlg.exec()
         if code not in (QDialog.DialogCode.Accepted, SettingsDialog.LOAD_NOW):
             return
-        n, s, b = dlg.paths()
-        self._source_north, self._source_south, self._source_back = n, s, b
-        save_pdf_paths(n, s, b)
+        edited = dlg.values_by_key()
+        self._source_north = edited.get("north", self._source_north)
+        self._source_south = edited.get("south", self._source_south)
+        self._source_back = edited.get("back", self._source_back)
+        n, s, b = self._source_north, self._source_south, self._source_back
+        save_pdf_paths(n, s, b, self._map_mode_id)
+        # The configured chart sources for this mode may have changed, so
+        # the session's in-memory render is potentially stale — drop it so
+        # the upcoming load re-renders from the new sources rather than
+        # serving the previous PDF's sheets from cache.
+        self._invalidate_map_image_cache(self._map_mode_id)
         save_autoload_enabled(dlg.autoload_on_start())
         # Re-resolve cached URLs silently — if the user pasted a
         # URL whose cache already happens to exist (e.g. they
@@ -6747,7 +7292,7 @@ class MainWindow(QMainWindow):
             self._south_path,
             self._back_path,
         ) = _resolve_chart_sources_silent(
-            (n, s, b), self._project_root
+            (n, s, b), self._project_root, mode_id=self._map_mode_id
         )
         if code == SettingsDialog.LOAD_NOW:
             # Defer one event loop tick so the settings dialog is fully closed
@@ -6786,16 +7331,18 @@ class MainWindow(QMainWindow):
             case the caller must stop and tear down its progress
             dialog.
         """
-        sources_by_sheet: tuple[tuple[str, str], ...] = (
-            ("north", self._source_north),
-            ("south", self._source_south),
-            ("back", self._source_back),
-        )
         path_attr_by_sheet: dict[str, str] = {
             "north": "_north_path",
             "south": "_south_path",
             "back": "_back_path",
         }
+        # Only the active mode's configured sheets — LSA has no back
+        # sheet, so iterating the fixed triple would try (and skip) a
+        # phantom one and could leave a stale ``back`` manifest entry.
+        sources_by_sheet: tuple[tuple[str, str], ...] = tuple(
+            (key, self._source_for_sheet(key))
+            for key in self._map_mode.sheet_keys
+        )
 
         for sheet_key, source in sources_by_sheet:
             if not source:
@@ -6813,8 +7360,12 @@ class MainWindow(QMainWindow):
             # URL source. Either cache hit (no network) or
             # download (interactive).
             normalized = chart_src.normalized_url()
-            if not needs_download(sheet_key, normalized, self._project_root):
-                cached = cache_path_for_sheet(sheet_key, self._project_root)
+            if not needs_download(
+                sheet_key, normalized, self._project_root, self._map_mode_id
+            ):
+                cached = cache_path_for_sheet(
+                    sheet_key, self._project_root, self._map_mode_id
+                )
                 setattr(self, path_attr_by_sheet[sheet_key], str(cached))
                 continue
             # Need to fetch. Loop on Retry until success / cancel /
@@ -6835,7 +7386,8 @@ class MainWindow(QMainWindow):
             # slower load.
             try:
                 restamp_sheet_fingerprints(
-                    self._project_root, sheet_key, cache_path
+                    self._project_root, sheet_key, cache_path,
+                    mode_id=self._map_mode_id,
                 )
             except (FileNotFoundError, OSError, ValueError) as exc:
                 layout_diag.log(
@@ -6844,6 +7396,24 @@ class MainWindow(QMainWindow):
                     error=str(exc),
                 )
         return True
+
+    #: Total download attempts per sheet before the manual error dialog is
+    #: shown. Transient CDN/network failures almost always clear on the
+    #: second try, so we auto-retry up to this many times first.
+    _CHART_DOWNLOAD_AUTO_ATTEMPTS: int = 3
+
+    def _wait_responsive_ms(self, ms: int) -> None:
+        """Block for ``ms`` milliseconds while keeping the event loop live.
+
+        Used for the inter-attempt download backoff: a plain ``time.sleep``
+        would freeze the progress dialog (no repaint, "Not Responding"),
+        whereas a nested ``QEventLoop`` driven by a one-shot timer lets the
+        dialog keep painting and the user keep moving the window."""
+        if ms <= 0:
+            return
+        loop = QEventLoop()
+        QTimer.singleShot(int(ms), loop.quit)
+        loop.exec()
 
     def _download_chart_with_retry(
         self, *, sheet_key: str, url: str
@@ -6857,13 +7427,33 @@ class MainWindow(QMainWindow):
         and let the Settings dialog's exit hook re-trigger
         loading once the user re-saves).
         """
-        dest = cache_path_for_sheet(sheet_key, self._project_root)
+        dest = cache_path_for_sheet(sheet_key, self._project_root, self._map_mode_id)
+        # Chart-CDN failures are overwhelmingly transient (flaky Wi-Fi, a CAAI
+        # BlobFolder redirect hiccup, a momentary 5xx) and clear on an
+        # immediate re-fetch. Rather than bounce the user to the error dialog
+        # on the first blip, auto-retry the same sheet a few times with a
+        # short responsive pause; only a sustained failure (all auto-attempts
+        # exhausted) surfaces the manual Retry / Settings / Cancel dialog.
+        auto_attempts = 0
         while True:
             try:
                 if self._progress is not None:
+                    try:
+                        sheet_name = self._map_mode.sheet(sheet_key).display_name
+                    except KeyError:
+                        sheet_name = f"{sheet_key.capitalize()} sheet"
+                    # The connect phase (DNS + TLS + the CAAI BlobFolder
+                    # 302 redirect to blob storage) blocks the UI thread
+                    # for a few seconds. Reset to an indeterminate bar so
+                    # it shows motion rather than sitting at the previous
+                    # sheet's 100%, and label it as an explicit
+                    # "Connecting to CAAI…" splash that then becomes the
+                    # byte-progress bar once the stream opens.
+                    self._progress.setRange(0, 0)
+                    self._progress.setValue(0)
                     self._progress.setLabelText(
-                        f"Connecting to download "
-                        f"{sheet_key.capitalize()} sheet\u2026"
+                        "Connecting to CAAI (Israel Civil Aviation "
+                        f"Authority) — fetching the {sheet_name}\u2026"
                     )
                     QApplication.processEvents()
                 download_chart_pdf(
@@ -6877,13 +7467,41 @@ class MainWindow(QMainWindow):
                 # rename atomically; manifest write here means
                 # "URL X is canonically the source of this
                 # cached file from now on".)
-                manifest = load_manifest(self._project_root)
+                manifest = load_manifest(self._project_root, self._map_mode_id)
                 manifest[sheet_key] = url
-                save_manifest(self._project_root, manifest)
+                save_manifest(self._project_root, manifest, self._map_mode_id)
                 return dest
             except ChartFetchError as exc:
+                auto_attempts += 1
+                if auto_attempts < self._CHART_DOWNLOAD_AUTO_ATTEMPTS:
+                    layout_diag.log(
+                        "chart_download.auto_retry",
+                        sheet=sheet_key,
+                        attempt=auto_attempts + 1,
+                        of=self._CHART_DOWNLOAD_AUTO_ATTEMPTS,
+                    )
+                    if self._progress is not None:
+                        try:
+                            sheet_name = self._map_mode.sheet(sheet_key).display_name
+                        except KeyError:
+                            sheet_name = f"{sheet_key.capitalize()} sheet"
+                        self._progress.setRange(0, 0)
+                        self._progress.setValue(0)
+                        self._progress.setLabelText(
+                            f"Download of the {sheet_name} failed — retrying "
+                            f"(attempt {auto_attempts + 1} of "
+                            f"{self._CHART_DOWNLOAD_AUTO_ATTEMPTS})\u2026"
+                        )
+                        QApplication.processEvents()
+                    # Brief, event-loop-responsive backoff (grows per attempt)
+                    # so a transient server/network issue has a moment to
+                    # clear without freezing the UI.
+                    self._wait_responsive_ms(600 * auto_attempts)
+                    continue
                 code = self._show_chart_download_error_dialog(exc)
                 if code == ACTION_RETRY:
+                    # User-initiated retry → grant a fresh auto-retry budget.
+                    auto_attempts = 0
                     continue
                 if code == ACTION_OPEN_SETTINGS:
                     # Defer to the next event-loop tick so the
@@ -6978,6 +7596,59 @@ class MainWindow(QMainWindow):
             pass
         self._progress = None
 
+    def _ensure_progress_dialog(self, label: str) -> None:
+        """Show the shared loading modal *now* with ``label``.
+
+        Creates ``self._progress`` if absent, otherwise reuses the dialog a
+        caller already raised. The ``show`` + ``processEvents`` paints the
+        window immediately so a click (e.g. a map-mode switch, whose teardown
+        runs on the UI thread before the load worker starts) gets instant
+        feedback rather than a frozen window followed by a late-appearing
+        bar. Indeterminate (busy) range by default; phases relabel/retune it.
+        """
+        if self._progress is None:
+            self._progress = QProgressDialog(self)
+            self._progress.setWindowTitle(app_title("Loading"))
+            self._progress.setCancelButton(None)
+            self._progress.setWindowModality(Qt.WindowModality.WindowModal)
+            self._progress.setMinimumDuration(0)
+            self._progress.setRange(0, 0)
+        self._progress.setLabelText(label)
+        self._progress.show()
+        self._progress.raise_()
+        QApplication.processEvents()
+
+    def _pump_progress(self) -> None:
+        """Spin the event loop one slice during synchronous teardown.
+
+        Used at the heavy-step boundaries of a mode switch *before* the load
+        worker starts (scene teardown), where the dialog is still showing the
+        indeterminate "Switching…" splash. The dialog is ``WindowModal`` so
+        toolbar input stays blocked — no re-entrant mode-switch can fire from
+        the pump."""
+        if self._progress is not None:
+            QApplication.processEvents()
+
+    def _set_finalize_progress(self, pct: int, label: str | None = None) -> None:
+        """Step the *determinate* finalize progress bar to ``pct`` (0–100).
+
+        The post-render finalize in :meth:`_on_map_finished` runs entirely on
+        the UI thread, so an indeterminate marquee freezes (its animation is
+        event-loop-timer driven). A determinate bar repaints immediately on
+        each ``setValue`` + ``processEvents``, giving the user real forward
+        motion through the scene/calibration/overlay sub-stages. Re-asserts
+        determinate mode defensively (the render phase already leaves the
+        bar determinate at 100 %; this phase relabels to "Finalizing…" and
+        steps a fresh 8→100 for the on-thread scene build)."""
+        if self._progress is None:
+            return
+        if self._progress.maximum() != 100 or self._progress.minimum() != 0:
+            self._progress.setRange(0, 100)
+        self._progress.setValue(max(0, min(100, int(pct))))
+        if label is not None:
+            self._progress.setLabelText(label)
+        QApplication.processEvents()
+
     def select_layer(self, sheet_id: str) -> None:
         if sheet_id not in ("north", "south"):
             return
@@ -7023,6 +7694,7 @@ class MainWindow(QMainWindow):
             south_y=float(self._south_item.pos().y()),
             south_scale=float(self._south_item.scale()),
             selected=self._selected,
+            mode_id=self._map_mode_id,
         )
         self._invalidate_geo_if_layout_mismatch()
         # Sheets just moved/scaled — re-project the route overlay so each
@@ -7352,7 +8024,97 @@ class MainWindow(QMainWindow):
         total += 4
         self._table.setMaximumWidth(total)
 
+    def _path_for_sheet(self, sheet_key: str) -> str:
+        """Resolved local PDF path for a mode sheet key, or ``""``."""
+        return {
+            "north": self._north_path,
+            "south": self._south_path,
+            "back": self._back_path,
+        }.get(sheet_key, "")
+
+    def _source_for_sheet(self, sheet_key: str) -> str:
+        """Configured source string (path or URL) for a mode sheet key."""
+        return {
+            "north": self._source_north,
+            "south": self._source_south,
+            "back": self._source_back,
+        }.get(sheet_key, "")
+
+    def _all_mode_sources_set(self) -> bool:
+        """True iff every sheet the active mode declares has a source."""
+        return all(
+            self._source_for_sheet(k) for k in self._map_mode.sheet_keys
+        )
+
+    def _all_mode_paths_resolved(self) -> bool:
+        """True iff every declared sheet resolved to a local PDF path."""
+        return all(
+            self._path_for_sheet(k) for k in self._map_mode.sheet_keys
+        )
+
+    def _waypoint_paths_by_sheet(self) -> dict[str, str]:
+        """Map the active mode's waypoint-source sheet keys to their
+        resolved local PDF paths (for the OCR worker / cache)."""
+        return {
+            key: self._path_for_sheet(key)
+            for key in self._map_mode.waypoint_sheet_keys
+        }
+
+    def _waypoint_cache_sources(self) -> list[tuple[str, str]]:
+        """``[(sheet_key, path), …]`` for the multi-source cache."""
+        return [
+            (key, self._path_for_sheet(key))
+            for key in self._map_mode.waypoint_sheet_keys
+        ]
+
+    def _load_waypoint_cache_for_mode(self) -> list[WaypointRecord] | None:
+        """Read the waypoint cache for the active mode.
+
+        Single-source modes (CVFR's ``back`` PDF) use the legacy
+        single-fingerprint cache so existing caches stay valid across
+        the v4 upgrade; multi-source modes (LSA) key on every source
+        PDF's fingerprint.
+        """
+        keys = self._map_mode.waypoint_sheet_keys
+        if len(keys) == 1:
+            return load_cached_waypoints(
+                self._project_root, self._path_for_sheet(keys[0]), self._map_mode_id
+            )
+        return load_cached_waypoints_multi(
+            self._project_root, self._waypoint_cache_sources(), self._map_mode_id
+        )
+
+    def _save_waypoint_cache_for_mode(
+        self, records: list[WaypointRecord], tag: str
+    ) -> None:
+        """Write the waypoint cache for the active mode (see
+        :meth:`_load_waypoint_cache_for_mode` for the single vs
+        multi-source split)."""
+        keys = self._map_mode.waypoint_sheet_keys
+        if len(keys) == 1:
+            save_waypoint_cache(
+                self._project_root,
+                self._path_for_sheet(keys[0]),
+                records,
+                tag,
+                self._map_mode_id,
+            )
+        else:
+            save_waypoint_cache_multi(
+                self._project_root,
+                self._waypoint_cache_sources(),
+                records,
+                tag,
+                self._map_mode_id,
+            )
+
     def _load_all(self) -> None:
+        layout_diag.log(
+            "load_all.enter",
+            mode=self._map_mode_id,
+            all_sources=int(self._all_mode_sources_set()),
+            all_paths=int(self._all_mode_paths_resolved()),
+        )
         # Catch the truly-unset case first — user hasn't filled in
         # Map File Settings at all. This is distinct from the
         # "URL source not yet downloaded" case (where _source_* is
@@ -7360,24 +8122,25 @@ class MainWindow(QMainWindow):
         # that. Here we're catching "user opened the program for
         # the first time, the shipped defaults aren't populated
         # for some reason, AND they haven't touched Settings yet".
-        if not (
-            self._source_north and self._source_south and self._source_back
-        ):
+        if not self._all_mode_sources_set():
+            # A mode switch may have already raised the dialog (see
+            # ``_switch_map_mode``); drop it before the modal message.
+            self._cleanup_progress_dialog()
             QMessageBox.information(
                 self,
                 "Settings",
-                "Set all three map sources (path or URL) in Settings\u2026 first.",
+                "Set every map source (path or URL) in Settings\u2026 first.",
             )
             return
 
-        self._progress = QProgressDialog(self)
-        self._progress.setWindowTitle(app_title("Loading"))
-        self._progress.setCancelButton(None)
-        self._progress.setWindowModality(Qt.WindowModality.WindowModal)
-        self._progress.setMinimumDuration(0)
-        self._progress.setRange(0, 0)
-        self._progress.show()
-        QApplication.processEvents()
+        # Reuse a dialog the caller already raised (mode switch shows one
+        # up-front so the click gets instant feedback) or create one now.
+        # Paint a meaningful message immediately so the dialog isn't a
+        # blank box during the brief source-resolution step. If a
+        # download is needed the connect phase relabels this to the
+        # explicit "Connecting to CAAI…" splash; on a pure cache-hit it
+        # flips straight to the waypoint/map phases below.
+        self._ensure_progress_dialog("Preparing to load maps\u2026")
 
         # Download any URL-sourced charts that aren't already
         # cache-hit. Returns False if the user cancelled (or
@@ -7392,17 +8155,17 @@ class MainWindow(QMainWindow):
         # bad local-path source (file deleted between launches)
         # still surfaces a clear message rather than hitting
         # PyMuPDF's confusing "Cannot open file" error later.
-        if not (self._north_path and self._south_path and self._back_path):
+        if not self._all_mode_paths_resolved():
             QMessageBox.information(
                 self,
                 "Settings",
-                "Could not resolve all three map sources. Open "
+                "Could not resolve every map source. Open "
                 "Settings\u2026 to check each path or URL.",
             )
             self._cleanup_progress_dialog()
             return
 
-        cached = load_cached_waypoints(self._project_root, self._back_path)
+        cached = self._load_waypoint_cache_for_mode()
         if cached is not None:
             # See the matching comment in
             # ``_start_map_load_after_waypoints``: after the last
@@ -7418,14 +8181,17 @@ class MainWindow(QMainWindow):
             return
 
         self._waypoints_ocr_then_maps = True
-        # OCR can take 30-90 seconds on the back-pages PDF; same
-        # determinate-bar-parked-at-100% concern as the cache-hit
-        # branch above. Indeterminate spinner conveys "still
-        # working".
+        # OCR can run from ~30-90s (CVFR back-pages) to several minutes
+        # (LSA full-OCR of two chart sheets). Start with an indeterminate
+        # spinner; the worker's per-row ``progress`` signal flips this to
+        # a determinate "row X of N" bar as soon as table detection
+        # finishes, so the long full-OCR scan never reads as a hang.
+        # Result is cached afterwards, so this cost is one-time per mode.
         self._progress.setRange(0, 0)
         self._progress.setValue(0)
         self._progress.setLabelText(
-            "Scanning back-pages PDF (OCR) — ensure Tesseract + Hebrew data are installed…"
+            f"Reading {self._map_mode.display_name} reporting points "
+            "(OCR) — ensure Tesseract + Hebrew data are installed…"
         )
         QApplication.processEvents()
         self._begin_waypoints_ocr_worker()
@@ -7448,7 +8214,8 @@ class MainWindow(QMainWindow):
             self._progress.setRange(0, 0)
             self._progress.show()
         self._progress.setLabelText(
-            "Re-scanning back-pages PDF (OCR) — ensure Tesseract + Hebrew data are installed…"
+            f"Re-reading {self._map_mode.display_name} reporting points "
+            "(OCR) — ensure Tesseract + Hebrew data are installed…"
         )
         QApplication.processEvents()
         self._begin_waypoints_ocr_worker()
@@ -7473,9 +8240,12 @@ class MainWindow(QMainWindow):
 
     def _begin_waypoints_ocr_worker(self) -> None:
         self._wp_ocr_thread = QThread(self)
-        self._wp_ocr_worker = WaypointsOcrWorker(self._back_path)
+        self._wp_ocr_worker = WaypointsOcrWorker(
+            self._map_mode, self._waypoint_paths_by_sheet()
+        )
         self._wp_ocr_worker.moveToThread(self._wp_ocr_thread)
         self._wp_ocr_thread.started.connect(self._wp_ocr_worker.run)
+        self._wp_ocr_worker.progress.connect(self._on_waypoints_ocr_progress)
         self._wp_ocr_worker.finished.connect(self._on_waypoints_ocr_finished)
         self._wp_ocr_worker.failed.connect(self._on_waypoints_ocr_failed)
         self._wp_ocr_worker.finished.connect(self._wp_ocr_thread.quit)
@@ -7491,14 +8261,43 @@ class MainWindow(QMainWindow):
             self._wp_ocr_thread.deleteLater()
             self._wp_ocr_thread = None
 
+    def _on_waypoints_ocr_progress(
+        self, done: int, total: int, sheet_key: str
+    ) -> None:
+        """Drive the progress dialog from the OCR worker's per-row signal.
+
+        Flips the (initially indeterminate) bar to a determinate
+        ``done / total`` so a multi-minute full-OCR scan (LSA) reads as
+        steady progress rather than a hang. ``total`` can legitimately
+        be ``0`` for a degenerate sheet (no detected table) — guard the
+        range so we don't show a 0..0 bar that looks stuck.
+        """
+        if self._progress is None:
+            return
+        try:
+            label = self._map_mode.sheet(sheet_key).display_name
+        except KeyError:
+            label = sheet_key
+        if total > 0:
+            self._progress.setRange(0, total)
+            self._progress.setValue(min(done, total))
+            self._progress.setLabelText(
+                f"Reading {self._map_mode.display_name} reporting points "
+                f"(OCR) — {label}: row {done} of {total}\u2026"
+            )
+        else:
+            self._progress.setRange(0, 0)
+            self._progress.setLabelText(
+                f"Reading {self._map_mode.display_name} reporting points "
+                f"(OCR) — {label}\u2026"
+            )
+
     def _on_waypoints_ocr_finished(self, records: object, source_tag: object) -> None:
         if not isinstance(records, list):
             self._on_waypoints_ocr_failed("Invalid OCR result.")
             return
         try:
-            save_waypoint_cache(
-                self._project_root,
-                self._back_path,
+            self._save_waypoint_cache_for_mode(
                 records,
                 str(source_tag) if source_tag is not None else "hybrid",
             )
@@ -7519,29 +8318,37 @@ class MainWindow(QMainWindow):
         QMessageBox.critical(self, "Waypoints", msg)
 
     def _start_map_load_after_waypoints(self) -> None:
-        if self._progress:
-            # Reset the bar back to indeterminate (spinner) mode.
-            # After a fresh PDF download the dialog is in
-            # determinate mode at 100 % (last download's
-            # ``setValue(total)``), and the next phase — render —
-            # has no per-tile progress emissions; without this
-            # reset the bar sits at 100 % for the entire 30-90 s
-            # render, which reads to the user as "the program is
-            # done but the map never appeared, so it's frozen."
-            # ``setRange(0, 0)`` is Qt's "indeterminate / busy"
-            # mode; the bar animates a marquee strip, which is the
-            # visual cue we need: "still working, not frozen."
-            #
-            # Order matters: setRange before setValue, because
-            # ``setValue`` clamps to the current ``maximum`` and
-            # we don't want a leftover-100% blip while the
-            # range is mid-update.
-            self._progress.setRange(0, 0)
-            self._progress.setValue(0)
-            self._progress.setLabelText(
-                "Rendering chart images from PDF — this can take "
-                "30-90 seconds on first launch. Please wait\u2026"
+        # Fast path: this mode's rendered sheets are already resident from an
+        # earlier load (or a background preload) this session. Rebuild the
+        # scene synchronously and skip the worker thread + PNG decode + file
+        # read entirely — this is what makes CVFR↔LSA switching near-instant.
+        if self._install_cached_maps(self._map_mode_id):
+            # Defer the inactive-mode preload for the same reason as the
+            # worker-finished path (see ``_on_map_finished``): a cold inactive
+            # mode preloads by rendering, whose GIL bursts would starve the
+            # active map's first paint if started immediately.
+            QTimer.singleShot(
+                self._PRELOAD_AFTER_PAINT_MS, self._preload_other_modes_in_background
             )
+            return
+        if self._progress:
+            # Switch to a *determinate* 0-100 bar for the render. The
+            # worker (:class:`MapLoadWorker`) rasterises each sheet
+            # band-by-band and emits ``render_progress`` per band, which
+            # ``_on_map_render_progress`` turns into real forward motion.
+            # (An indeterminate marquee is wrong here: its animation is an
+            # event-loop timer, and although banding keeps the loop alive,
+            # a determinate bar is both honest — there IS measurable
+            # progress — and immune to the "frozen at 50 %" look.)
+            #
+            # Order matters: setRange before setValue, because ``setValue``
+            # clamps to the current ``maximum``.
+            self._progress.setRange(0, 100)
+            self._progress.setValue(0)
+            # Neutral placeholder until the worker posts the one-time
+            # explanation; on a PNG-cache hit the worker finishes before
+            # rendering, so the "1-3 minutes" wording never flashes.
+            self._progress.setLabelText("Preparing chart images\u2026")
             QApplication.processEvents()
 
         self._map_thread = QThread(self)
@@ -7549,10 +8356,12 @@ class MainWindow(QMainWindow):
             self._north_path,
             self._south_path,
             project_root=self._project_root,
+            mode_id=self._map_mode_id,
         )
         self._map_worker.moveToThread(self._map_thread)
         self._map_thread.started.connect(self._map_worker.run)
         self._map_worker.progress.connect(self._on_map_progress)
+        self._map_worker.render_progress.connect(self._on_map_render_progress)
         self._map_worker.finished.connect(self._on_map_finished)
         self._map_worker.failed.connect(self._on_map_failed)
         self._map_worker.finished.connect(self._map_thread.quit)
@@ -7561,43 +8370,240 @@ class MainWindow(QMainWindow):
         self._map_thread.start()
 
     def _cleanup_map_thread(self) -> None:
+        # Thread/worker teardown only. The progress dialog's lifecycle is
+        # owned by ``_on_map_finished`` (success — it keeps the dialog up
+        # through the synchronous finalize and closes it at the end) and
+        # ``_on_map_failed``. Closing it here would race the finalize's
+        # ``processEvents`` pump and tear the dialog down early, restoring
+        # the "frozen window with no feedback" symptom on a mode switch.
         if self._map_worker:
             self._map_worker.deleteLater()
             self._map_worker = None
         if self._map_thread:
             self._map_thread.deleteLater()
             self._map_thread = None
-        if self._progress:
-            self._progress.close()
-            self._progress = None
 
     def _on_map_progress(self, msg: str) -> None:
-        if self._progress:
-            self._progress.setLabelText(msg)
+        # Status-bar only. The progress *dialog* label during a render is
+        # owned by ``_on_map_render_progress`` (the persistent one-time
+        # explanation); routing these transient phase strings ("Opening
+        # map PDFs…", "Rendering south map…") to the label too would
+        # clobber that message every band.
         self.statusBar().showMessage(msg)
 
+    def _on_map_render_progress(self, pct: int, label: str) -> None:
+        """Advance the determinate render bar (and set the one-time label
+        the first time, when ``label`` is non-empty).
+
+        See :data:`cvfr_routemaster.map_loader.ONE_TIME_RENDER_MESSAGE` for
+        the wording; the worker sends it once (``label`` populated, pct 0)
+        and then streams ``label=""`` band updates that move the value
+        only."""
+        if self._progress is None:
+            return
+        if self._progress.maximum() != 100:
+            self._progress.setRange(0, 100)
+        if label:
+            self._progress.setLabelText(label)
+        self._progress.setValue(max(0, min(100, int(pct))))
+        QApplication.processEvents()
+
+    def _install_cached_maps(self, mode_id: str) -> bool:
+        """Synchronously rebuild the scene from this session's image cache.
+
+        Returns ``True`` (and finalizes the map) when ``mode_id`` has a valid
+        cached render; ``False`` when there's nothing cached and the caller
+        should fall through to the worker. The cached :class:`QImage` pair is
+        the exact output a fresh worker run would have produced, so the
+        scene/overlay/calibration finalize is identical — only the wait is
+        gone."""
+        entry = self._map_image_cache.get(mode_id)
+        if entry is None:
+            return False
+        img_n, img_s, render_info = entry
+        if img_n is None or img_s is None or img_n.isNull() or img_s.isNull():
+            # Stale/garbage entry — drop it and let the worker re-render.
+            self._map_image_cache.pop(mode_id, None)
+            return False
+        self._finalize_map_images(img_n, img_s, render_info)
+        return True
+
+    def _invalidate_map_image_cache(self, mode_id: str | None = None) -> None:
+        """Drop cached rendered sheets so the next load re-renders.
+
+        ``mode_id=None`` clears every mode (used when something global, like
+        a render-DPI change, invalidates all renders). Called when a mode's
+        chart sources change or the user forces a maps reload, so the cache
+        can never serve sheets that no longer match the configured PDFs."""
+        if mode_id is None:
+            self._map_image_cache.clear()
+        else:
+            self._map_image_cache.pop(mode_id, None)
+
+    def _preload_other_modes_in_background(self) -> None:
+        """Warm the inactive mode(s)' image cache from their PNG cache on disk.
+
+        Runs after the active mode is on screen so the *first* CVFR↔LSA switch
+        is also instant rather than paying a full render. Deliberately
+        conservative: only modes whose sources resolve to a usable PNG cache
+        (or local files the worker can read without a network download) are
+        queued, and only one preload worker runs at a time. A mode already in
+        the cache, or the active mode itself, is skipped. Failures are silent
+        — a mode that can't be preloaded simply renders on first switch."""
+        for mid in map_modes.mode_ids():
+            if mid == self._map_mode_id:
+                continue
+            if mid in self._map_image_cache:
+                continue
+            if mid in self._preload_queue or mid == self._preload_active_mode:
+                continue
+            self._preload_queue.append(mid)
+        self._start_next_preload()
+
+    def _start_next_preload(self) -> None:
+        if self._preload_thread is not None:
+            return  # one at a time; chained from ``_on_preload_finished``
+        while self._preload_queue:
+            mid = self._preload_queue.pop(0)
+            if mid in self._map_image_cache or mid == self._map_mode_id:
+                continue
+            n_src, s_src, _b = load_pdf_paths(self._project_root, mid)
+            if not n_src or not s_src:
+                continue
+            n_path, s_path, _bp = _resolve_chart_sources_silent(
+                (n_src, s_src, _b), self._project_root, mode_id=mid
+            )
+            if not n_path or not s_path:
+                continue
+            if not (Path(n_path).is_file() and Path(s_path).is_file()):
+                # No local PDF to render from and the worker would otherwise
+                # have to download — skip silently; first switch will load it.
+                continue
+            self._preload_active_mode = mid
+            self._preload_thread = QThread(self)
+            self._preload_worker = MapLoadWorker(
+                n_path,
+                s_path,
+                project_root=self._project_root,
+                mode_id=mid,
+            )
+            self._preload_worker.moveToThread(self._preload_thread)
+            self._preload_thread.started.connect(self._preload_worker.run)
+            self._preload_worker.finished.connect(self._on_preload_finished)
+            self._preload_worker.failed.connect(self._on_preload_failed)
+            self._preload_worker.finished.connect(self._preload_thread.quit)
+            self._preload_worker.failed.connect(self._preload_thread.quit)
+            self._preload_thread.finished.connect(self._cleanup_preload_thread)
+            self._preload_thread.start()
+            return
+
+    def _on_preload_finished(self, payload: object) -> None:
+        mid = self._preload_active_mode
+        if (
+            mid is not None
+            and isinstance(payload, tuple)
+            and len(payload) == 2
+            and payload[0] is not None
+            and payload[1] is not None
+            and not payload[0].isNull()
+            and not payload[1].isNull()
+            and mid not in self._map_image_cache
+        ):
+            render_info: dict[str, SheetRenderInfo] = {}
+            if self._preload_worker is not None and self._preload_worker.render_info:
+                render_info = dict(self._preload_worker.render_info)
+            self._map_image_cache[mid] = (payload[0], payload[1], render_info)
+            layout_diag.log("map_preload.cached", mode=mid)
+
+    def _on_preload_failed(self, msg: str) -> None:
+        layout_diag.log("map_preload.failed", mode=self._preload_active_mode or "-")
+
+    def _cleanup_preload_thread(self) -> None:
+        if self._preload_worker is not None:
+            self._preload_worker.deleteLater()
+            self._preload_worker = None
+        if self._preload_thread is not None:
+            self._preload_thread.deleteLater()
+            self._preload_thread = None
+        self._preload_active_mode = None
+        # Chain to the next queued mode (if any) on a deferred tick so the
+        # just-finished thread fully unwinds first.
+        if self._preload_queue:
+            QTimer.singleShot(0, self._start_next_preload)
+
     def _on_map_finished(self, payload: object) -> None:
-        if self._progress:
-            self._progress.close()
-            self._progress = None
         if (
             not isinstance(payload, tuple)
             or len(payload) != 2
             or payload[0] is None
             or payload[1] is None
         ):
+            self._cleanup_progress_dialog()
             QMessageBox.warning(self, "Map", "Could not build map images.")
             return
         img_n, img_s = payload[0], payload[1]
         if img_n.isNull() or img_s.isNull():
+            self._cleanup_progress_dialog()
             QMessageBox.warning(self, "Map", "Could not build map images.")
             return
 
         # Snapshot the worker's render geometry *before* the QThread tears
         # down — the altitude worker needs the same DPI + CropMeta to put
         # arrows in calibration-compatible pixmap UV.
+        render_info: dict[str, SheetRenderInfo] = {}
         if self._map_worker is not None and self._map_worker.render_info:
-            self._render_info_by_sheet = dict(self._map_worker.render_info)
+            render_info = dict(self._map_worker.render_info)
+
+        # Cache the decoded images for this mode so a later switch back skips
+        # the worker entirely (see ``_finalize_map_images`` fast path).
+        self._map_image_cache[self._map_mode_id] = (img_n, img_s, render_info)
+
+        self._finalize_map_images(img_n, img_s, render_info)
+        # Warm the inactive mode(s) in the background so the first switch is
+        # also instant — but DEFER it. On a first run the inactive mode has no
+        # PNG cache, so preloading *renders* it on a worker thread that holds
+        # the GIL in multi-second bursts; starting it the instant finalize
+        # returns starves the active map's first on-screen paint (the 8-10 s
+        # post-dialog black gap). The delay lets the active chart paint and
+        # the event loop settle first; the render then proceeds in the
+        # background while the user can already see and use the map.
+        QTimer.singleShot(
+            self._PRELOAD_AFTER_PAINT_MS, self._preload_other_modes_in_background
+        )
+
+    def _finalize_map_images(
+        self,
+        img_n: QImage,
+        img_s: QImage,
+        render_info: dict[str, SheetRenderInfo],
+    ) -> None:
+        """Build the scene + overlays + calibration from decoded chart images.
+
+        Shared by the worker-finished callback (:meth:`_on_map_finished`) and
+        the synchronous in-memory fast path (:meth:`_install_cached_maps`), so
+        a cached mode switch reuses the exact same finalize as a fresh render
+        — only the image *source* differs (worker payload vs session cache).
+        Runs entirely on the GUI thread (scene items must be built here).
+        """
+        # Keep the progress dialog up through the synchronous scene/overlay/
+        # calibration finalize below. That work runs on the UI thread, so on a
+        # mode switch — where the images come straight from cache and there's
+        # no worker wait at all — the window would otherwise sit frozen with
+        # *no* feedback while pixmaps are converted, overlays rebuilt, and
+        # calibration reloaded.
+        #
+        # This phase is driven as a *determinate* bar, stepped forward at each
+        # sub-stage via ``_set_finalize_progress``. An indeterminate (busy)
+        # marquee can't help here: its animation is driven by an event-loop
+        # timer, and this finalize blocks the event loop end-to-end, so the
+        # marquee freezes mid-sweep (the "stuck at ~50 %" report). A
+        # determinate bar repaints immediately on each ``setValue`` +
+        # ``processEvents``, so the user sees real forward motion. It's
+        # closed at the end of this method.
+        self._set_finalize_progress(8, "Finalizing map & overlays\u2026")
+
+        if render_info:
+            self._render_info_by_sheet = dict(render_info)
 
         self._clear_map_items()
 
@@ -7618,7 +8624,7 @@ class MainWindow(QMainWindow):
             s_ph=int(pix_s.height()),
         )
 
-        layout = load_map_layout(self._project_root)
+        layout = load_map_layout(self._project_root, self._map_mode_id)
         layout_diag.log(
             "on_map_finished.load_map_layout",
             present=layout is not None,
@@ -7654,6 +8660,7 @@ class MainWindow(QMainWindow):
         self._south_item.setZValue(10.0)
         self.select_layer(self._selected)
         self._refresh_scene_rect()
+        self._set_finalize_progress(45, "Finalizing map & overlays — calibration\u2026")
         # If both sheets have valid saved clicks, re-run the auto-alignment
         # using the *current* math before the formal calibration loader
         # checks layout-vs-saved-map_layout. This is the upgrade path for
@@ -7674,6 +8681,9 @@ class MainWindow(QMainWindow):
         # call only updates the in-memory affine state, leaving the
         # chart-pixmap pose alone.
         self._apply_joint_affine_overrides_at_startup()
+        self._set_finalize_progress(
+            65, "Finalizing map & overlays — satellite tiles\u2026"
+        )
         # The per-tile satellite overlay needs a calibration to
         # place tiles, so it's built *after* the calibration reload
         # rather than alongside the chart pixmaps. Each overlay's
@@ -7686,6 +8696,14 @@ class MainWindow(QMainWindow):
         # :class:`_ChartSheetItem`. Visibility is driven
         # separately via the toolbar toggle.
         self._build_satellite_overlays()
+        # Waypoint marker overlays are cheap (hundreds of items) and sit on
+        # top of the satellite tiles so VRPs stay visible/clickable when
+        # imagery covers the chart's printed triangles. Built unconditionally
+        # (their visibility tracks the satellite toggle), unlike the
+        # tens-of-thousands-of-items satellite overlay which is deferred
+        # until satellite view is actually on.
+        self._build_waypoint_marker_overlays()
+        self._set_finalize_progress(95)
         # If the user already had satellite mode enabled when this
         # chart finished loading, push the current viewport rect
         # so tiles start loading immediately — without this the
@@ -7697,6 +8715,17 @@ class MainWindow(QMainWindow):
         layout_diag.snapshot_sheets(
             "on_map_finished.after_scene_setup", self._north_item, self._south_item
         )
+        # Fit/restore the view *synchronously* here — while the progress
+        # dialog is still up — so the chart is positioned (and painted,
+        # below) before the dialog is torn down. Deferring this via
+        # ``singleShot(0)`` (the old behaviour) left a window where the
+        # dialog was gone but the view hadn't been fitted/painted yet, so
+        # the user saw a black viewport for a beat. ``_apply_saved_map_view``
+        # self-defers (bounded retry) if the viewport isn't sized yet, so
+        # this is safe even mid-first-layout; the trailing ``singleShot``
+        # remains as a backstop for that retry case.
+        self._diag_view("finalize.before_apply")
+        self._apply_saved_map_view()
         QTimer.singleShot(0, self._apply_saved_map_view)
         if cal_issues:
             QTimer.singleShot(
@@ -7708,21 +8737,77 @@ class MainWindow(QMainWindow):
             8000,
         )
 
-        # v3 satellite-imagery: now that the chart is up and the
-        # window has a non-blank backdrop, we can show the
-        # first-launch consent dialog (if the user has never been
-        # asked) or quietly resume an interrupted bulk fetch (if
-        # they've already accepted in a prior session). Deferred a
-        # tick so it stacks cleanly on top of the just-rendered
-        # chart rather than racing the on_map_finished paint.
-        QTimer.singleShot(0, self._satellite_check_on_map_loaded)
+        self._set_finalize_progress(100)
+        # Register the freshly-built scene as this mode's resident bundle so
+        # a later switch back restores it instantly instead of rebuilding.
+        # ``_switch_map_mode`` re-snapshots just before leaving, so any route
+        # / altitude changes made while the mode stays active are captured
+        # then; this initial snapshot just records the built chart + overlays
+        # and flips ``built`` on.
+        self._snapshot_active_mode_scene()
+        bundle = self._mode_scenes.get(self._map_mode_id)
+        if bundle is not None:
+            bundle.built = True
+        # Force a synchronous paint of the now-fitted chart *before* the
+        # dialog is dismissed, so the map is on screen the instant the
+        # dialog disappears (no black-viewport gap). The first paint of a
+        # ~90 MP pixmap scaled-to-fit is itself slow; doing it here keeps
+        # that cost behind the still-visible dialog instead of after it.
+        try:
+            self._view.viewport().repaint()
+        except RuntimeError:
+            pass
+        # Synchronous finalize is done — drop the progress dialog before the
+        # deferred satellite/viewport callbacks (and any calibration prompt)
+        # so they stack on a clean chart rather than behind a modal spinner.
+        self._cleanup_progress_dialog()
+        # The user-visible paint of the fitted ~90 MP chart happens on the
+        # first expose AFTER the modal dialog is gone — the repaint above
+        # drew it *behind* the still-open modal. Force that real paint
+        # synchronously here, while no background preload render is competing
+        # for the GIL yet, so the chart appears immediately instead of after
+        # an 8-10 s starve once the inactive-mode preload render kicks in.
+        try:
+            self._view.viewport().repaint()
+            QApplication.processEvents(
+                QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents
+            )
+        except RuntimeError:
+            pass
+        # Arm the startup re-fit window (see ``_reapply_view_on_resize``): if
+        # this finalize ran before the window finished laying out, every
+        # settling resize re-applies the saved view until this flag clears.
+        self._map_view_layout_pending = True
+        QTimer.singleShot(
+            self._MAP_VIEW_SETTLE_MS, self._clear_map_view_layout_pending
+        )
+
+        # Both of the post-load background jobs below are deferred past the
+        # chart's first on-screen paint. On a COLD load the altitude walk is
+        # a multi-second, GIL-holding pass and the satellite resume spins up
+        # tile workers immediately; starting either the instant finalize
+        # returns starves the GUI thread's first paint of the ~90 MP chart,
+        # so the dialog closes onto a black viewport that only fills in once
+        # the worker yields (the reported "10 s gap between the bar finishing
+        # and the map appearing"). The forced repaint above draws the chart
+        # now; this short delay lets that paint land before any background
+        # GIL contention begins.
+        #
+        # v3 satellite-imagery: show the first-launch consent dialog (if the
+        # user has never been asked) or quietly resume an interrupted bulk
+        # fetch (if they've already accepted in a prior session).
+        QTimer.singleShot(
+            self._PRELOAD_AFTER_PAINT_MS, self._satellite_check_on_map_loaded
+        )
 
         # Kick off altitude-arrow extraction. Cheap on a warm cache (<50 ms)
-        # and an off-thread ~30-s walk on a cold one, so this is fire-and-
-        # forget: when the worker emits ``finished`` we'll refresh the
+        # and an off-thread multi-second walk on a cold one, so this is fire-
+        # and-forget: when the worker emits ``finished`` we'll refresh the
         # route panel with real altitudes; until then every leg shows
         # "unknown".
-        self._start_altitude_extraction()
+        QTimer.singleShot(
+            self._PRELOAD_AFTER_PAINT_MS, self._start_altitude_extraction
+        )
 
     def _start_altitude_extraction(self) -> None:
         """Spawn the altitude-arrow worker for both sheets if we have the
@@ -7757,6 +8842,7 @@ class MainWindow(QMainWindow):
             north_crop=north_info.crop,
             south_render_dpi=south_info.render_dpi,
             south_crop=south_info.crop,
+            mode_id=self._map_mode_id,
         )
         self._alt_worker.moveToThread(self._alt_thread)
         self._alt_thread.started.connect(self._alt_worker.run)
@@ -7826,16 +8912,105 @@ class MainWindow(QMainWindow):
         self._view.resetTransform()
         self._view.fitInView(self._scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
+    def _reapply_view_on_resize(self) -> None:
+        """Re-apply the saved/fitted map view on a genuine viewport resize.
+
+        Connected to ``MapGraphicsView.view_resized`` (fires only on a real
+        widget resize, never on scroll/zoom). Acts only while
+        ``_map_view_layout_pending`` is set — the brief startup window after a
+        map load during which the window is still converging on its final
+        geometry — so each settling resize re-applies the saved view at the
+        new size. The flag is cleared by a settle timer
+        (``_clear_map_view_layout_pending``), after which manual resizes no
+        longer override the user's navigation."""
+        if not self._map_view_layout_pending:
+            return
+        if self._north_item is None or self._south_item is None:
+            return
+        vp = self._view.viewport().rect()
+        if vp.width() <= 0 or vp.height() <= 0:
+            return
+        self._diag_view("resize.reapply")
+        self._apply_saved_map_view()
+
+    def _clear_map_view_layout_pending(self) -> None:
+        """End the startup re-fit window (see ``_reapply_view_on_resize``)."""
+        self._map_view_layout_pending = False
+
+    def _diag_view(self, label: str) -> None:
+        """Log the *view* geometry (viewport size, transform scale, visible
+        scene rect vs sheet rect, overlap). The sheet snapshots only record
+        item positions; this captures what actually decides black-vs-visible
+        so the startup vs mode-switch divergence is diagnosable from the log."""
+        try:
+            from PySide6.QtCore import QRectF
+
+            vp = self._view.viewport().rect()
+            t = self._view.transform()
+            if self._north_item is not None and self._south_item is not None:
+                sheets = self._north_item.sceneBoundingRect().united(
+                    self._south_item.sceneBoundingRect()
+                )
+            else:
+                sheets = QRectF()
+            visible = self._view.mapToScene(vp).boundingRect()
+            inter = visible.intersected(sheets)
+            sr = self._scene.sceneRect()
+            layout_diag.log(
+                "view.geom",
+                at=label,
+                mode=self._map_mode_id,
+                pending=int(getattr(self, "_map_view_layout_pending", 0)),
+                vp_w=int(vp.width()),
+                vp_h=int(vp.height()),
+                m11=round(t.m11(), 6),
+                m22=round(t.m22(), 6),
+                vis_x=round(visible.x(), 1),
+                vis_y=round(visible.y(), 1),
+                vis_w=round(visible.width(), 1),
+                vis_h=round(visible.height(), 1),
+                sh_x=round(sheets.x(), 1),
+                sh_y=round(sheets.y(), 1),
+                sh_w=round(sheets.width(), 1),
+                sh_h=round(sheets.height(), 1),
+                sr_w=round(sr.width(), 1),
+                sr_h=round(sr.height(), 1),
+                ov_w=round(inter.width(), 1),
+                ov_h=round(inter.height(), 1),
+            )
+        except Exception as exc:  # diagnostics must never break the app
+            layout_diag.log("view.geom.err", at=label, err=str(exc))
+
     def _apply_saved_map_view(self) -> None:
         layout_diag.snapshot_sheets(
             "apply_saved_map_view.enter", self._north_item, self._south_item
         )
-        data = load_map_view_navigation()
+        self._diag_view("apply.enter")
+        # Defer while the viewport has no usable size yet. On the very
+        # first load of a session the window is still laying out when the
+        # ``singleShot(0)`` from ``_on_map_finished`` fires, so the
+        # QGraphicsView viewport can momentarily be 0×0. Restoring a saved
+        # zoom/scroll against a zero-size viewport clamps the scrollbars to
+        # a meaningless position and the user sees a black (empty) viewport
+        # until they interact — which is exactly the "starts black in LSA,
+        # fine after a mode switch" report (a switch happens once the
+        # window is fully sized). A bounded retry avoids a hot loop if the
+        # viewport never sizes (e.g. headless test teardown).
+        vp = self._view.viewport().rect()
+        if vp.width() <= 0 or vp.height() <= 0:
+            tries = getattr(self, "_apply_saved_map_view_retries", 0)
+            if tries < 30:
+                self._apply_saved_map_view_retries = tries + 1
+                QTimer.singleShot(16, self._apply_saved_map_view)
+                return
+        self._apply_saved_map_view_retries = 0
+        data = load_map_view_navigation(self._map_mode_id)
         if not data:
             self._fit_map()
             layout_diag.snapshot_sheets(
                 "apply_saved_map_view.exit_fit", self._north_item, self._south_item
             )
+            self._diag_view("apply.exit_fit")
             return
         try:
             t = QTransform(
@@ -7859,13 +9034,96 @@ class MainWindow(QMainWindow):
             return
         self._view.resetTransform()
         self._view.setTransform(t)
+        # Let the scrollbar ranges update to the new transform/viewport
+        # *before* restoring the saved scroll offsets — otherwise the
+        # ``setValue`` calls clamp against stale (pre-transform) ranges and
+        # the restored pan lands in the wrong place (a contributor to the
+        # black-on-launch panel). ExcludeUserInputEvents keeps this from
+        # re-entering a user-triggered action mid-restore.
+        QApplication.processEvents(QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents)
         self._view.horizontalScrollBar().setValue(int(data["scroll_h"]))
         self._view.verticalScrollBar().setValue(int(data["scroll_v"]))
+        # Defensive: a restored view that lands entirely off the chart
+        # shows a black viewport. This happens when the saved zoom/scroll
+        # was captured against a sheet layout that the startup joint-align
+        # re-pass (``_reapply_overlap_alignment_from_saved_clicks_if_changed``)
+        # has since moved, or against a stale prior session. Rather than
+        # trust the restore blindly, verify the chart is actually visible
+        # and fall back to fit-to-chart when it isn't — the user always
+        # sees the map instead of a black panel.
+        if not self._restored_view_shows_chart():
+            self._fit_map()
+            layout_diag.snapshot_sheets(
+                "apply_saved_map_view.exit_offchart_fit",
+                self._north_item,
+                self._south_item,
+            )
+            self._diag_view("apply.exit_offchart_fit")
+            return
         layout_diag.snapshot_sheets(
             "apply_saved_map_view.exit_restored",
             self._north_item,
             self._south_item,
         )
+        self._diag_view("apply.exit_restored")
+
+    #: How long (ms) after a map finalize to keep re-applying the saved view
+    #: on each settling resize (see ``_reapply_view_on_resize``). Long enough
+    #: to cover the startup splitter/window layout settle, short enough that
+    #: a manual resize moments later isn't hijacked.
+    _MAP_VIEW_SETTLE_MS: int = 2500
+
+    #: Delay (ms) between a map finishing/finalizing and kicking off the
+    #: inactive-mode background preload. Long enough for the active chart's
+    #: first paint to complete (so the preload render's GIL bursts can't
+    #: starve it), short enough to stay imperceptible.
+    _PRELOAD_AFTER_PAINT_MS: int = 500
+
+    #: Minimum fraction of either the viewport or the chart that must be
+    #: covered by their overlap for a restored saved view to be accepted.
+    #: A bare ``intersects()`` (1px overlap) used to pass, so a saved view
+    #: that landed almost entirely on empty scene space (sheets moved by
+    #: the startup joint re-align since the view was saved, or a stale
+    #: prior session) read as "fine" and the user saw a black panel —
+    #: precisely the "2nd-launch LSA black, fine after a mode switch"
+    #: report. Requiring a meaningful overlap forces the fit-to-chart
+    #: fallback in that case while still accepting a deliberate deep
+    #: zoom-in (chart fills the viewport → ratio ~1) or zoom-out (chart
+    #: fully visible → ratio ~1 against the chart area).
+    _MIN_VIEW_CHART_COVERAGE: float = 0.10
+
+    def _restored_view_shows_chart(self) -> bool:
+        """True iff the current viewport *meaningfully* overlaps the chart.
+
+        Used after restoring a saved zoom/scroll to detect the "black
+        viewport" failure mode where the restored view points at (mostly)
+        empty scene space. Accepts a legitimate deep zoom (chart fills the
+        view) or zoom-out (chart fully contained); rejects a sliver/▏near-
+        miss so the caller falls back to fit-to-chart.
+        """
+        if self._north_item is None or self._south_item is None:
+            return True
+        sheets = self._north_item.sceneBoundingRect().united(
+            self._south_item.sceneBoundingRect()
+        )
+        if sheets.isEmpty():
+            return True
+        vp = self._view.viewport().rect()
+        if vp.width() <= 0 or vp.height() <= 0:
+            # Not sized yet: report "not shown" so the caller fits rather
+            # than trusting a transform applied against a 0x0 viewport.
+            return False
+        visible = self._view.mapToScene(vp).boundingRect()
+        overlap = visible.intersected(sheets)
+        if overlap.isEmpty():
+            return False
+        overlap_area = overlap.width() * overlap.height()
+        visible_area = visible.width() * visible.height()
+        sheets_area = sheets.width() * sheets.height()
+        ref = min(visible_area, sheets_area)
+        if ref <= 0:
+            return False
+        return (overlap_area / ref) >= self._MIN_VIEW_CHART_COVERAGE
 
     def _persist_map_view_navigation(self) -> None:
         tr = self._view.transform()
@@ -7881,6 +9139,7 @@ class MainWindow(QMainWindow):
             m33=float(tr.m33()),
             scroll_h=int(self._view.horizontalScrollBar().value()),
             scroll_v=int(self._view.verticalScrollBar().value()),
+            mode_id=self._map_mode_id,
         )
 
     def closeEvent(self, event: QCloseEvent) -> None:
@@ -8016,8 +9275,27 @@ def run_app(
 
     assert app is not None
 
+    if splash is not None:
+        # The bar was creeping during the (off-thread) import; the window
+        # build below is a synchronous GUI-thread step, so the bar can't
+        # animate through it. Park it near-complete with an honest label so
+        # the user never sees a misleading static mid-bar, then jump to 100
+        # and close once the window actually exists.
+        try:
+            splash.setLabelText("Building window…")
+            if splash.maximum() == 100:
+                splash.setValue(max(int(splash.value()), 92))
+            QApplication.processEvents()
+        except Exception:  # pragma: no cover - splash is best-effort chrome
+            pass
+
     w = MainWindow(project_root)
     if splash is not None:
+        try:
+            if splash.maximum() == 100:
+                splash.setValue(100)
+        except Exception:  # pragma: no cover
+            pass
         splash.close()
         splash.deleteLater()
     w.show()

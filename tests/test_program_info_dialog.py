@@ -54,6 +54,7 @@ PySide6 = pytest.importorskip("PySide6")
 from PySide6.QtWidgets import QApplication, QTextBrowser  # noqa: E402
 
 from cvfr_routemaster import APP_NAME, __version__, display_version  # noqa: E402
+from cvfr_routemaster import map_modes  # noqa: E402
 from cvfr_routemaster.program_info_dialog import (  # noqa: E402
     AGPL_FULL_TEXT_URL,
     AGPL_PARA_LICENSE_GRANT,
@@ -358,9 +359,9 @@ def test_rendered_html_version_tracks_module_version(
 
     monkeypatch.setattr(pkg, "__version__", "4.0.0")
     html = build_copyright_info_html()
-    assert f"<b>{APP_NAME} v4</b>" in html, (
+    assert f"<b>{APP_NAME} v4.0</b>" in html, (
         "Dialog title line must reflect the (monkeypatched) "
-        "version 4.0.0 as 'v4'"
+        "version 4.0.0 as 'v4.0'"
     )
     assert f"<b>{APP_NAME} v3" not in html, (
         "Dialog title line must NOT still read 'v3.x' after "
@@ -436,6 +437,55 @@ def test_rendered_html_contains_all_three_caai_chart_urls() -> None:
     for url in CAAI_CHART_URLS.values():
         assert f'href="{url}"' in html, (
             f"CAAI URL missing from dialog href: {url}"
+        )
+
+
+def test_rendered_html_enumerates_every_mode_chart_url() -> None:
+    """Every chart product the app can switch to (CVFR, LSA, …)
+    must have *all* of its sheet source URLs attributed in the
+    Chart-data section. Driving this assertion off the
+    ``map_modes`` registry — rather than the CVFR-only
+    ``chart_source`` constants — pins the v4 contract that the
+    legal dialog enumerates the whole registry, so adding a new
+    mode (and shipping its seed) surfaces its URLs here without
+    a separate edit to the dialog."""
+    html = build_copyright_info_html()
+    for mode in map_modes.all_modes():
+        for sheet in mode.sheets:
+            assert f'href="{sheet.default_url}"' in html, (
+                f"{mode.mode_id}/{sheet.key} URL missing from the "
+                f"Legal dialog: {sheet.default_url}"
+            )
+
+
+def test_rendered_html_includes_the_lsa_chart_urls() -> None:
+    """Regression guard for the v4 phase-4 change: the LSA chart
+    URLs (AIP edition ``ב'-08``) must appear in the dialog. Before
+    v4 the dialog only listed the three CVFR sheets; this test
+    fails loudly if a refactor drops back to CVFR-only
+    enumeration."""
+    html = build_copyright_info_html()
+    lsa = map_modes.get_mode("lsa")
+    assert lsa.sheets, "LSA mode unexpectedly has no sheets"
+    for sheet in lsa.sheets:
+        assert f'href="{sheet.default_url}"' in html, (
+            f"LSA {sheet.key} URL missing from dialog: {sheet.default_url}"
+        )
+    # The AIP edition tag distinguishes LSA (b'-08) from CVFR
+    # (b'-03); confirm at least one LSA URL carries it so we know
+    # the LSA set — not a duplicate of the CVFR set — was rendered.
+    assert "08" in "".join(s.default_url for s in lsa.sheets)
+
+
+def test_chart_section_labels_each_mode_by_display_name() -> None:
+    """Each mode's URLs are grouped under a bold heading naming
+    the chart product (``CVFR`` / ``LSA``) so a reader can tell
+    which product a given URL belongs to."""
+    html = build_copyright_info_html()
+    for mode in map_modes.all_modes():
+        assert f"<b>{mode.display_name}</b>" in html, (
+            f"Chart-data section missing the {mode.display_name!r} "
+            f"product heading"
         )
 
 

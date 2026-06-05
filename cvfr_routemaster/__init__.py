@@ -39,30 +39,35 @@ here, the window title at runtime, and the Copyright Information
 dialog must all read the same string before the release goes out.
 """
 
-__version__ = "3.3.0"
+__version__ = "4.0.0"
 
 APP_NAME = "CVFR Route Master"
 
 
 def display_version() -> str:
-    """Return the user-facing version string, with the trailing
-    ``.0`` of a major.minor.0 trimmed off so a clean release reads
-    as ``3.3`` rather than ``3.3.0`` in the title bar.
+    """Return the user-facing version string.
 
-    Patch releases keep the third segment (``3.3.1`` stays
-    ``3.3.1``), so a hotfix is visually distinct from its parent
-    release without forcing the dev to remember a second display
-    format.
+    A trailing ``.0`` *patch* segment is trimmed (so a clean release
+    like ``4.0.0`` reads as ``4.0`` in the title bar), but the
+    ``MAJOR.MINOR`` pair is always preserved — a minor release reads
+    as ``4.0``, not ``4``. Patch releases keep the third segment
+    (``3.3.1`` stays ``3.3.1``) so a hotfix is visually distinct from
+    its parent release.
 
     Examples:
+        ``"4.0.0"`` -> ``"4.0"``
         ``"3.3.0"`` -> ``"3.3"``
         ``"3.3.1"`` -> ``"3.3.1"``
-        ``"3.0.0"`` -> ``"3"``  (also trims a redundant minor zero)
+        ``"3.0.0"`` -> ``"3.0"``
         ``"4.0.5"`` -> ``"4.0.5"``
+        ``"1.2"``   -> ``"1.2"``
     """
     parts = __version__.split(".")
-    while len(parts) > 1 and parts[-1] == "0":
-        parts.pop()
+    # Trim only a redundant trailing zero PATCH segment; never drop the
+    # MINOR, so ``4.0.0`` displays as ``4.0`` (the v4.0 release brand)
+    # rather than collapsing to a bare ``4``.
+    if len(parts) == 3 and parts[2] == "0":
+        parts = parts[:2]
     return ".".join(parts)
 
 
@@ -80,7 +85,7 @@ def app_title(prefix: str = "") -> str:
     Args:
         prefix: Optional contextual prefix joined with an em-dash
             before the app name. ``""`` (default) yields the bare
-            ``CVFR Route Master (v3.3)`` form used by the main
+            ``CVFR Route Master (v4.0)`` form used by the main
             window and the splash screen.
 
     Returns:

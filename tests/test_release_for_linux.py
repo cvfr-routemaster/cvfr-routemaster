@@ -173,19 +173,23 @@ def test_check_prerequisites_passes_on_linux_with_required_files(
     it we'd never know if a future tightening of the prereq list
     accidentally locked out a valid environment."""
     from scripts import build_release_for_linux
+    from cvfr_routemaster import map_modes
 
     fake_repo = tmp_path / "repo"
     fake_repo.mkdir()
-    (fake_repo / ".cvfr_routemaster").mkdir()
-    (fake_repo / ".cvfr_routemaster" / "geo_calibration.json").write_text("{}")
+    dev_cache = fake_repo / ".cvfr_routemaster"
+    dev_cache.mkdir()
+    # v4 requires a per-mode calibration for every registered mode.
+    for mode_id in map_modes.mode_ids():
+        mode_dir = dev_cache / mode_id
+        mode_dir.mkdir()
+        (mode_dir / "geo_calibration.json").write_text("{}")
     for pdf in build_release_for_linux.CHART_PDFS:
         (fake_repo / pdf).write_bytes(b"%PDF-1.4 stub\n")
 
     monkeypatch.setattr(sys, "platform", "linux")
     monkeypatch.setattr(build_release_for_linux, "REPO_ROOT", fake_repo)
-    monkeypatch.setattr(
-        build_release_for_linux, "DEV_CACHE_DIR", fake_repo / ".cvfr_routemaster"
-    )
+    monkeypatch.setattr(build_release_for_linux, "DEV_CACHE_DIR", dev_cache)
 
     build_release_for_linux._check_prerequisites()
     out = capsys.readouterr().out
@@ -836,11 +840,16 @@ def test_copy_seed_cache_skips_missing_optional_files_with_a_notice(
     builder doesn't drift into stricter behaviour by accident.
     """
     from scripts import build_release_for_linux
+    from cvfr_routemaster import map_modes
 
     fake_dev_cache = tmp_path / "dev-cache"
     fake_dev_cache.mkdir()
-    # Seed only the critical file — calibration JSON.
-    (fake_dev_cache / "geo_calibration.json").write_text("{}")
+    # Seed only the critical file — calibration JSON — under each
+    # mode's namespace; the remaining optional caches are absent.
+    for mode_id in map_modes.mode_ids():
+        mode_dir = fake_dev_cache / mode_id
+        mode_dir.mkdir()
+        (mode_dir / "geo_calibration.json").write_text("{}")
 
     fake_release = tmp_path / "rel"
     fake_release.mkdir()
@@ -854,5 +863,14 @@ def test_copy_seed_cache_skips_missing_optional_files_with_a_notice(
     assert "geo_calibration.json" in out
     assert "skipped" in out
     assert "optional" in out
-    # Critical file made it through.
-    assert (fake_release / ".cvfr_routemaster" / "geo_calibration.json").is_file()
+    # Critical file made it through, per-mode.
+    for mode_id in map_modes.mode_ids():
+        assert (
+            fake_release
+            / ".cvfr_routemaster"
+            / mode_id
+            / "geo_calibration.json"
+        ).is_file()
+    # The v4 marker is dropped so the runtime skips flat→namespaced
+    # migration on this already-v4 tree.
+    assert (fake_release / ".cvfr_routemaster" / ".v4_migrated").is_file()

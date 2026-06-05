@@ -39,9 +39,12 @@ legal text a recipient of this binary needs to read:
 * The author's contact email (also the source-code request
   channel; AGPLv3 §6 requires the source offer to remain valid
   for at least three years).
-* Attribution for the Israeli CVFR charts (CAAI / State of
-  Israel; charts are NOT distributed with the program — see
-  ``ROADMAP-NEXT.md`` for the dynamic-fetch design).
+* Attribution for the Israeli CVFR and LSA charts (CAAI /
+  State of Israel; charts are NOT distributed with the program
+  — see ``ROADMAP-NEXT.md`` for the dynamic-fetch design). The
+  per-mode source URLs are enumerated from the
+  :mod:`cvfr_routemaster.map_modes` registry so every chart
+  product the app can switch to is attributed.
 * Third-party software licenses for every direct dependency we
   ship in the release bundle (Python, Qt/PySide6, PyMuPDF,
   Pillow, NumPy, pytesseract, Tesseract OCR, PyInstaller), plus
@@ -109,6 +112,7 @@ from PySide6.QtWidgets import (
 )
 
 from cvfr_routemaster import APP_NAME, display_version
+from cvfr_routemaster import map_modes
 from cvfr_routemaster.chart_source import (
     CAAI_CHART_URLS as _SHEET_URLS,
     SHEET_DISPLAY_NAMES,
@@ -330,50 +334,74 @@ def _human_readable_url(url: str) -> str:
     return html.escape(unquote(url), quote=False)
 
 
+def _chart_url_list_item(label: str, url: str) -> str:
+    """Render one ``<li>`` for a single chart sheet's CAAI URL.
+
+    The href intentionally uses ``quote=False``: gov.il's CAAI
+    URLs are hardcoded module-level constants (CVFR in
+    ``chart_source.CAAI_CHART_URLS``; LSA in
+    :mod:`cvfr_routemaster.map_modes`); they contain only
+    percent-encoded bytes + ASCII + a literal apostrophe ``'``
+    (in ``aip_%D7%91'-03`` / ``aip_%D7%91'-08``). The apostrophe
+    is legal as a literal character inside a double-quoted HTML
+    attribute per HTML5 §13.1.2.3, and we want to preserve it
+    verbatim because ``html.escape(quote=True)`` would emit
+    ``&#x27;`` — which Qt's text-engine would unescape on click,
+    so functionally identical, but a reader looking at the raw
+    HTML (or a test inspecting the dialog source) would have to
+    mentally decode the entity. ``quote=False`` still escapes
+    ``<``, ``>``, and ``&`` (the three characters that would
+    actually break the markup) so we're defended against any
+    future URL revision that grows one of those.
+    """
+    href_safe = html.escape(url, quote=False)
+    text_safe = _human_readable_url(url)
+    label_safe = html.escape(label, quote=False)
+    return f'<li><b>{label_safe}:</b> <a href="{href_safe}">{text_safe}</a></li>'
+
+
 def _chart_data_section_html() -> str:
     """Render the Chart-data attribution section.
 
-    Each CAAI URL is shown with a friendly label (North / South
-    / Back-pages) and a clickable link whose visible text is the
+    Enumerates **every** registered map mode
+    (:func:`cvfr_routemaster.map_modes.all_modes`) so each chart
+    product the app can switch to — CVFR, LSA, and any future
+    product — has its CAAI source URLs attributed. Each sheet's
+    URL is shown with a friendly label (North / South /
+    Back-pages) and a clickable link whose visible text is the
     human-readable (Hebrew-decoded) form of the URL — see
     :func:`_human_readable_url` for the rationale and the trade-
     off between wire-format href and display-format text.
+
+    Driving this off the registry (rather than the CVFR-only
+    ``chart_source`` constants) keeps the legal attribution in
+    lock-step with what the program actually fetches: register a
+    new mode in ``map_modes`` and its URLs appear here
+    automatically.
     """
-    rows: list[str] = []
-    for label, url in CAAI_CHART_URLS.items():
-        # The href intentionally uses ``quote=False``: gov.il's
-        # CAAI URLs are a hardcoded module-level constant
-        # (``chart_source.CAAI_CHART_URLS``), they contain only
-        # percent-encoded bytes + ASCII + a literal apostrophe
-        # ``'`` (in ``aip_%D7%91'-03``). The apostrophe is
-        # legal as a literal character inside a double-quoted
-        # HTML attribute per HTML5 §13.1.2.3, and we want to
-        # preserve it verbatim because ``html.escape(quote=True)``
-        # would emit ``&#x27;`` — which Qt's text-engine would
-        # unescape on click, so functionally identical, but a
-        # reader looking at the raw HTML (or a test inspecting
-        # the dialog source) would have to mentally decode the
-        # entity. ``quote=False`` still escapes ``<``, ``>``,
-        # and ``&`` (the three characters that would actually
-        # break the markup) so we're defended against any
-        # future URL revision that grows one of those.
-        href_safe = html.escape(url, quote=False)
-        text_safe = _human_readable_url(url)
-        rows.append(
-            f'<li><b>{label}:</b> <a href="{href_safe}">{text_safe}</a></li>'
+    mode_blocks: list[str] = []
+    for mode in map_modes.all_modes():
+        rows = "\n".join(
+            _chart_url_list_item(sheet.display_name, sheet.default_url)
+            for sheet in mode.sheets
         )
-    rows_html = "\n".join(rows)
+        mode_blocks.append(
+            f"<p><b>{html.escape(mode.display_name, quote=False)}</b></p>"
+            f"<ul>{rows}</ul>"
+        )
+    blocks_html = "\n".join(mode_blocks)
     return (
         "<h2>Chart data</h2>"
-        "<p>The Israeli CVFR charts displayed by this program are "
-        "published by the Civil Aviation Authority of Israel (CAAI) "
-        "and are <b>&copy; State of Israel</b>. The chart PDFs and "
-        "their rendered images are <b>not distributed with this "
-        "program</b> in compliance with the gov.il terms of use. "
-        "On first run, the program fetches the latest published "
-        "PDFs from the CAAI website on demand from the following "
-        "URLs:</p>"
-        f"<ul>{rows_html}</ul>"
+        "<p>The Israeli CVFR and LSA charts displayed by this "
+        "program are published by the Civil Aviation Authority of "
+        "Israel (CAAI) and are <b>&copy; State of Israel</b>. The "
+        "chart PDFs and their rendered images are <b>not distributed "
+        "with this program</b> in compliance with the gov.il terms "
+        "of use. On first run — and the first time you switch to "
+        "each chart product — the program fetches the latest "
+        "published PDFs from the CAAI website on demand from the "
+        "following URLs:</p>"
+        f"{blocks_html}"
         "<p>Use of the CAAI charts is governed by the gov.il terms "
         "of use: "
         f'<a href="{CAAI_TERMS_URL}">{CAAI_TERMS_URL}</a>.</p>'

@@ -1,0 +1,113 @@
+# ---------------------------------------------------------------------------
+# Bundled OCR binaries (~286 MB).
+# Rebuilt locally by `python scripts/fetch_vendor_tesseract.py`. Not committed
+# because (a) they're upstream binaries we don't want to vendor into git LFS
+# and (b) any release machine that needs Tesseract for OCR re-runs the fetch
+# script as part of the build prerequisites check.
+# ---------------------------------------------------------------------------
+vendor/cache/
+vendor/tesseract/
+
+# ---------------------------------------------------------------------------
+# Israeli CVFR/LSA chart PDFs at the repo root (e.g. CVFR-NORTH-OCT-2025-*.pdf).
+# Redistribution is prohibited by the source's (CAAI) terms of use, so the raw
+# charts are NEVER committed — the app downloads them at runtime from the URLs
+# in chart_sources.json. Scoped to the repo root (`/`) so test-fixture and
+# documentation PDFs living in subdirectories are unaffected.
+# ---------------------------------------------------------------------------
+/*.pdf
+
+# ---------------------------------------------------------------------------
+# Per-project runtime cache (~65 MB).
+# Populated the first time the app launches against the CVFR PDFs (OCR'd
+# waypoints, normalised map PNGs, altitude arrow extractions, the user's
+# personal calibration). Both reproducible from the chart PDFs and tied
+# to a specific machine's calibration — no value in committing.
+# ---------------------------------------------------------------------------
+.cvfr_routemaster/
+
+# ---------------------------------------------------------------------------
+# Per-user app preferences (INI format, project-root-local).
+# Holds window layout, font sizes, satellite-download notice flag,
+# QSettings-style key/value preferences — see settings_store.SETTINGS_INI_FILENAME.
+# Lives next to the EXE in release builds (which is .gitignored as release/)
+# and next to the repo root in dev mode. Never committed because it's
+# per-machine and per-developer; v3.3+ replaced the per-platform native
+# QSettings backend (Windows registry / Linux ~/.config / macOS plist) with
+# this INI file so wipe-the-folder equals wipe-the-state.
+# ---------------------------------------------------------------------------
+settings.ini
+
+# ---------------------------------------------------------------------------
+# PyInstaller / release build outputs.
+# All three are derived artifacts; the source-of-truth is the spec files
+# (cvfr-routemaster.spec, cvfr-routemaster-linux.spec) plus the scripts in
+# scripts/build_release*.py. `cvfr-routemaster-linux.tar.gz` is the bundled
+# Linux release archive emitted by the Linux build script (~374 MB) and is
+# regenerated end-to-end on every build.
+# ---------------------------------------------------------------------------
+build/
+dist/
+release/
+release-linux/
+cvfr-routemaster-linux.tar.gz
+release-build.log
+
+# ---------------------------------------------------------------------------
+# Runtime logs the app dumps next to the executable (Qt logging + stderr/
+# stdout captures used while debugging the WSL launch issue). Per-session,
+# never part of a release.
+# ---------------------------------------------------------------------------
+.cvfr.err
+.cvfr.log
+.cvfr.out
+
+# ---------------------------------------------------------------------------
+# Python bytecode / pytest scratch.
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# ---------------------------------------------------------------------------
+# WSL-side scratch directory used while diagnosing the Linux build (mtime
+# investigations, py-spy dumps, etc.). Not part of the source tree.
+# ---------------------------------------------------------------------------
+.wsl-scratch/
+
+# ---------------------------------------------------------------------------
+# Local scratch / experimentation folder. Houses one-off benchmark scripts,
+# probe utilities and other throwaway code that helped diagnose specific
+# bugs but isn't part of the product. Anything graduated into the real tree
+# (cvfr_routemaster/, scripts/, tests/) ceases to be scratch.
+# ---------------------------------------------------------------------------
+scratch/
+
+# ---------------------------------------------------------------------------
+# User flight-plan saves and CSV waypoint exports written via the in-app
+# "Save flight plan" / "Export waypoints to CSV" dialogs. The default save
+# location is the repo root when launching from `py -m cvfr_routemaster`,
+# so these would otherwise pollute the working tree.
+# ---------------------------------------------------------------------------
+*.cvfr
+waypoints.csv
+
+# ---------------------------------------------------------------------------
+# Editor / IDE local state.
+# ---------------------------------------------------------------------------
+.vscode/
+.idea/
+.cursor/
+*.swp
+*.swo
+*~
+
+# ---------------------------------------------------------------------------
+# OS noise.
+# ---------------------------------------------------------------------------
+Thumbs.db
+.DS_Store

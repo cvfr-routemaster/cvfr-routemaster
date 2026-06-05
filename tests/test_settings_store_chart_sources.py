@@ -101,6 +101,42 @@ def test_looks_like_url_accepts_http_schemes(text: str) -> None:
     assert _looks_like_url(text)
 
 
+# ---------------------------------------------------------------------------
+# Per-mode (v4) source defaults
+# ---------------------------------------------------------------------------
+
+
+def test_load_pdf_paths_lsa_defaults_to_registry_urls(
+    tmp_path: Path, isolated_settings: Path
+) -> None:
+    """A fresh LSA mode (no QSettings, no shipped chart_sources.json)
+    falls back to the LSA registry default URLs so download-on-first-use
+    works without an empty Settings dialog. The absent back sheet stays
+    empty."""
+    north, south, back = load_pdf_paths(tmp_path, "lsa")
+    assert "-08" in north and north.startswith("https://")
+    assert "-08" in south and south.startswith("https://")
+    assert back == ""
+
+
+def test_load_pdf_paths_lsa_skips_cvfr_autodiscovery(
+    tmp_path: Path, isolated_settings: Path
+) -> None:
+    """The legacy CVFR filesystem autodiscovery must not adopt CVFR PDFs
+    as LSA sources — switching to LSA on a machine with the old
+    ``map-pdfs/`` bundle should still use the LSA URLs, not the CVFR
+    files."""
+    legacy = tmp_path / "map-pdfs"
+    legacy.mkdir()
+    (legacy / "CVFR-NORTH-OCT-2025-UPD2.pdf").write_bytes(b"%PDF cvfr north")
+    (legacy / "CVFR-SOUTH-OCT-2025-UPD2.pdf").write_bytes(b"%PDF cvfr south")
+
+    north, south, _back = load_pdf_paths(tmp_path, "lsa")
+    assert north.startswith("https://")
+    assert "CVFR-NORTH" not in north
+    assert south.startswith("https://")
+
+
 @pytest.mark.parametrize(
     "text",
     [

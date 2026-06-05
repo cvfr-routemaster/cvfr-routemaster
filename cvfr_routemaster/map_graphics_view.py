@@ -134,6 +134,16 @@ class MapGraphicsView(QGraphicsView):
     #: consumer to redo the transform anyway).
     viewport_changed = Signal()
 
+    #: Emitted *only* on an actual widget resize (not on scroll or zoom).
+    #: ``viewport_changed`` fires for scroll/zoom/resize alike, so it can't
+    #: distinguish a real geometry change from a programmatic scroll — which
+    #: matters for the startup one-shot map re-fit (a saved-scroll restore
+    #: emits ``viewport_changed`` at the *same* size and would otherwise be
+    #: mistaken for "layout settled"). This signal fires once per genuine
+    #: resize, so the controller can re-apply the saved view as the window
+    #: converges on its final size at startup.
+    view_resized = Signal()
+
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._controller: Any = None
@@ -206,6 +216,7 @@ class MapGraphicsView(QGraphicsView):
         """
         super().resizeEvent(event)
         self.viewport_changed.emit()
+        self.view_resized.emit()
 
     def wheelEvent(self, event: QWheelEvent) -> None:
         mods = event.modifiers()

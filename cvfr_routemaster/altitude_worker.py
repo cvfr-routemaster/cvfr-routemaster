@@ -83,6 +83,7 @@ class AltitudeArrowsWorker(QObject):
         north_crop: CropMeta,
         south_render_dpi: float,
         south_crop: CropMeta,
+        mode_id: str | None = None,
     ) -> None:
         super().__init__()
         self._north_path = Path(north_path)
@@ -92,6 +93,7 @@ class AltitudeArrowsWorker(QObject):
         self._north_crop = north_crop
         self._south_render_dpi = float(south_render_dpi)
         self._south_crop = south_crop
+        self._mode_id = mode_id
 
     def _load_or_extract(
         self,
@@ -102,6 +104,7 @@ class AltitudeArrowsWorker(QObject):
     ) -> list[AltitudeArrow]:
         cached = try_load_altitude_arrows(
             self._project_root, pdf, sheet, render_dpi=render_dpi, crop=crop,
+            mode_id=self._mode_id,
         )
         if cached is not None:
             self.progress.emit(f"Loaded altitude arrows for {sheet} from cache.")
@@ -111,6 +114,7 @@ class AltitudeArrowsWorker(QObject):
         arrows = extract_altitude_arrows(pdf, render_dpi=render_dpi, crop=crop)
         save_altitude_arrows(
             self._project_root, pdf, sheet, arrows, render_dpi=render_dpi, crop=crop,
+            mode_id=self._mode_id,
         )
         return arrows
 
