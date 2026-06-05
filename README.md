@@ -3,7 +3,7 @@
 An Israel CVFR route-planning assistant for flight-simulator use.
 
 CVFR Route Master helps VATSIM pilots plan and study the route for CVFR
-flights in Israel. It combines the CAAI's CVFR chart with satellite imagery,
+flights in Israel, for both GA-CVFR (called just CVFR in the rest of this document) and LSA-CVFR (called just LSA in the rest of this document) routes. It combines the CAAI's CVFR chart with satellite imagery,
 computes distances, times and bearings between waypoints (both the official
 reporting points and arbitrary intermediate points if needed — for example
 across segments around Jericho), and reads route altitudes from the arrows
@@ -32,7 +32,7 @@ altitude and speed (the colour indicates the wake category).
    imagery — but it will download them for your personal use under the
    respective providers' terms of use.
 3. On first launch the tool downloads the CVFR charts from CAAI, converts
-   them from PDF to images, and loads them on the main screen.
+   them from PDF to images, and loads them on the main screen. This process can take some time on the first use when the CVFR or LSA maps are chosen, however, subsequent launches are rapid. The process is identical for CVFR and LSA maps, with CVFR being loaded by default on first launch, and the process repeating itself the first time the user switches to LSA. Please be patient, this can take a couple of minutes as rendering the huge map images from PDF takes time, even on a powerful CPU.
 4. After that, the tool starts downloading satellite imagery — about 2 GB
    total, across four different zoom levels (z=12 through z=15) which the
    tool uses dynamically depending on how far you are zoomed in (closer
@@ -40,7 +40,7 @@ altitude and speed (the colour indicates the wake category).
    first, then 13, then 14, and finally 15. Each level becomes available to
    the satellite view as soon as it finishes, so imagery appears fairly
    quickly and the available resolution improves as the download
-   progresses.
+   progresses. It is possible to copy the existing sattelite tile cache from a previous version of the program, simply copy .cvfr_routemaster/satellite_tiles to the ./cvfr_routemaster folder of your new version. This will save you the download time between versions.
 5. It is fine to close the program while a download is in progress — it
    will resume on the next launch.
 6. The bottom-right of the window shows download progress for each zoom
