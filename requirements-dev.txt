@@ -1,0 +1,10 @@
+# Optional local development
+-r requirements.txt
+
+# Test runner
+pytest>=8.0
+
+# Build tooling for the Windows release (.exe + release/ folder).
+# Driven by scripts/build_release.py; see ``cvfr-routemaster.spec``
+# for the PyInstaller configuration.
+pyinstaller>=6.0

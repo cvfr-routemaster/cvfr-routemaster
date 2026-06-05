@@ -202,6 +202,150 @@ def test_restamp_updates_waypoints_cache_for_back_sheet(tmp_path: Path) -> None:
     assert reloaded["back_pdf"]["size"] == new_stat.st_size
 
 
+def test_restamp_updates_lsa_waypoints_source_for_north(tmp_path: Path) -> None:
+    """LSA's waypoint cache keys on a ``sources`` *list* (page 2 of
+    both map sheets), not the single ``back_pdf`` block. Downloading
+    the north sheet must restamp the ``sources`` entry whose
+    ``sheet`` is ``north`` — otherwise the shipped cache stays at the
+    dev's build-time mtime and the user re-runs full OCR on first
+    launch (the exact LSA regression this guards)."""
+    cache_dir = tmp_path / ".cvfr_routemaster" / "lsa"
+    pdf_path = cache_dir / "charts" / "lsa_north.pdf"
+    _write_pdf(pdf_path)
+
+    _write_cache(
+        cache_dir,
+        "waypoints_cache.json",
+        {
+            "sources": [
+                {
+                    "sheet": "north",
+                    "path": "C:/old/dev/LSA-NORTH.pdf",
+                    "mtime_ns": 1000,
+                    "size": 99,
+                },
+                {
+                    "sheet": "south",
+                    "path": "C:/old/dev/LSA-SOUTH.pdf",
+                    "mtime_ns": 2000,
+                    "size": 88,
+                },
+            ],
+            "records": [],
+        },
+    )
+
+    report = restamp_sheet_fingerprints(tmp_path, "north", pdf_path, mode_id="lsa")
+    reloaded = json.loads(
+        (cache_dir / "waypoints_cache.json").read_text(encoding="utf-8")
+    )
+    by_sheet = {s["sheet"]: s for s in reloaded["sources"]}
+    new_stat = pdf_path.stat()
+    # North source restamped …
+    assert by_sheet["north"]["mtime_ns"] == new_stat.st_mtime_ns
+    assert by_sheet["north"]["size"] == new_stat.st_size
+    assert by_sheet["north"]["path"] == str(pdf_path)
+    # … south source left untouched (its own download restamps it).
+    assert by_sheet["south"]["mtime_ns"] == 2000
+    assert by_sheet["south"]["size"] == 88
+    wp_updates = [
+        u for u in report.updates if u.cache_file == "waypoints_cache.json"
+    ]
+    assert len(wp_updates) == 1
+    assert wp_updates[0].field_path == "sources[sheet=north]"
+
+
+def test_restamp_lsa_waypoints_both_sheets_validate_after_download(
+    tmp_path: Path,
+) -> None:
+    """End-to-end: restamping north then south must leave the LSA
+    waypoint cache validating against the freshly-downloaded PDFs
+    via the real :func:`load_cached_waypoints_multi`. This is the
+    closest unit-level proxy for "LSA opens warm on a fresh install
+    instead of re-OCRing"."""
+    from cvfr_routemaster.waypoint_cache import (
+        CACHE_FORMAT_VERSION,
+        EXTRACTOR_LOGIC_VERSION,
+        load_cached_waypoints_multi,
+    )
+
+    cache_dir = tmp_path / ".cvfr_routemaster" / "lsa"
+    north_pdf = cache_dir / "charts" / "lsa_north.pdf"
+    south_pdf = cache_dir / "charts" / "lsa_south.pdf"
+    _write_pdf(north_pdf, size=2048)
+    _write_pdf(south_pdf, size=4096)
+
+    _write_cache(
+        cache_dir,
+        "waypoints_cache.json",
+        {
+            "cache_format_version": CACHE_FORMAT_VERSION,
+            "extractor_logic_version": EXTRACTOR_LOGIC_VERSION,
+            "sources": [
+                {"sheet": "north", "path": "old-n", "mtime_ns": 1, "size": 1},
+                {"sheet": "south", "path": "old-s", "mtime_ns": 2, "size": 2},
+            ],
+            "source": "FULL_OCR",
+            "records": [
+                {
+                    "index": 0,
+                    "code": "TEST",
+                    "name_he": "בדיקה",
+                    "reporting_type": "חובה",
+                    "lat": 32.0,
+                    "lon": 35.0,
+                    "lat_dms": "320000N",
+                    "lon_dms": "0350000E",
+                }
+            ],
+        },
+    )
+
+    sources = [("north", str(north_pdf)), ("south", str(south_pdf))]
+    # Before restamp: cache must be rejected (stale fingerprints).
+    assert (
+        load_cached_waypoints_multi(tmp_path, sources, mode_id="lsa") is None
+    )
+
+    restamp_sheet_fingerprints(tmp_path, "north", north_pdf, mode_id="lsa")
+    restamp_sheet_fingerprints(tmp_path, "south", south_pdf, mode_id="lsa")
+
+    # After restamp: cache validates and returns the seeded record.
+    records = load_cached_waypoints_multi(tmp_path, sources, mode_id="lsa")
+    assert records is not None
+    assert len(records) == 1
+    assert records[0].code == "TEST"
+
+
+def test_restamp_back_sheet_does_not_touch_sources_list(tmp_path: Path) -> None:
+    """The single-source CVFR waypoint cache (``back_pdf`` block, no
+    ``sources`` list) must be restamped only via its binding; the
+    multi-source helper must leave it byte-identical."""
+    cache_dir = tmp_path / ".cvfr_routemaster"
+    pdf_path = cache_dir / "charts" / "cvfr_back.pdf"
+    _write_pdf(pdf_path)
+    _write_cache(
+        cache_dir,
+        "waypoints_cache.json",
+        {
+            "back_pdf": {"path": "old", "mtime_ns": 1000, "size": 99},
+            "records": [],
+        },
+    )
+
+    report = restamp_sheet_fingerprints(tmp_path, "back", pdf_path)
+    reloaded = json.loads(
+        (cache_dir / "waypoints_cache.json").read_text(encoding="utf-8")
+    )
+    assert "sources" not in reloaded
+    # Exactly one update: the back_pdf binding, not a sources entry.
+    wp_updates = [
+        u for u in report.updates if u.cache_file == "waypoints_cache.json"
+    ]
+    assert len(wp_updates) == 1
+    assert wp_updates[0].field_path == "back_pdf"
+
+
 def test_restamp_updates_every_binding_for_north(tmp_path: Path) -> None:
     """North downloads must restamp ALL three north-binding cache
     files: geo_calibration, altitude_arrows_north, map_images_meta."""

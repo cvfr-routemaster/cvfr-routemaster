@@ -114,15 +114,31 @@ def main() -> None:
 
     splash = QProgressDialog(None)
     splash.setWindowTitle(app_title())
-    splash.setLabelText("Starting…")
-    splash.setRange(0, 0)
+    splash.setLabelText("Loading modules…")
+    # Determinate creep (not an indeterminate marquee): the heavy import
+    # below blocks nothing here because it runs on a worker thread while a
+    # local event loop spins, so a QTimer can advance this bar smoothly.
+    # An indeterminate bar would otherwise freeze mid-sweep during the
+    # import and read as a static "stuck at 50 %".
+    splash.setRange(0, 100)
+    splash.setValue(1)
     splash.setCancelButton(None)
     splash.setWindowModality(Qt.WindowModality.ApplicationModal)
     splash.setMinimumDuration(0)
     splash.show()
     app.processEvents()
 
-    from cvfr_routemaster.main_window import run_app
+    # Import MainWindow's entrypoint off-thread so the splash keeps moving
+    # during the slowest part of startup (the transitive PySide6 / PyMuPDF /
+    # pipeline imports — multiple seconds in a frozen build).
+    from cvfr_routemaster.splash_loader import load_with_creeping_splash
+
+    def _import_run_app():
+        from cvfr_routemaster.main_window import run_app as _run_app
+
+        return _run_app
+
+    run_app = load_with_creeping_splash(splash, _import_run_app)
 
     raise SystemExit(run_app(root, app=app, splash=splash))
 

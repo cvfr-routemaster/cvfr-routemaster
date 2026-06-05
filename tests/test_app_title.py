@@ -74,36 +74,38 @@ def test_app_name_is_unchanged_literal() -> None:
 @pytest.mark.parametrize(
     ("raw", "expected"),
     [
+        ("4.0.0", "4.0"),
         ("3.3.0", "3.3"),
         ("3.3.1", "3.3.1"),
-        ("3.0.0", "3"),
+        ("3.0.0", "3.0"),
         ("4.0.5", "4.0.5"),
         ("1.2", "1.2"),
-        ("10.0.0", "10"),
+        ("10.0.0", "10.0"),
         ("0.1.0", "0.1"),
     ],
 )
 def test_display_version_trims_trailing_zero_segments(
     monkeypatch: pytest.MonkeyPatch, raw: str, expected: str
 ) -> None:
-    """``display_version()`` should drop any trailing ``.0`` segments
-    (so a clean release like ``3.3.0`` reads as ``v3.3``) but keep
-    every other segment intact (so ``3.3.1`` stays as ``v3.3.1``,
-    making hotfixes visually distinct). Parametrized so a refactor
-    that breaks one branch can't pass under a luckier input."""
+    """``display_version()`` drops a redundant trailing ``.0`` *patch*
+    segment (so a clean release like ``4.0.0`` reads as ``v4.0``) but
+    always keeps the ``MAJOR.MINOR`` pair (so ``4.0.0`` is ``4.0``, not
+    ``4``) and every non-zero segment intact (``3.3.1`` stays
+    ``v3.3.1``). Parametrized so a refactor that breaks one branch
+    can't pass under a luckier input."""
     import cvfr_routemaster as pkg
 
     monkeypatch.setattr(pkg, "__version__", raw)
     assert pkg.display_version() == expected
 
 
-def test_display_version_for_current_version_is_three_three() -> None:
-    """Concrete sanity check on the actual shipped version. v3.3
+def test_display_version_for_current_version_is_four_oh() -> None:
+    """Concrete sanity check on the actual shipped version. v4.0
     is what the build cookbook says we're shipping; if a future
-    bump moves to v3.4, update this test, the cookbook entry, and
+    bump moves to v4.1, update this test, the cookbook entry, and
     the Copyright Information dialog together."""
-    assert __version__ == "3.3.0"
-    assert display_version() == "3.3"
+    assert __version__ == "4.0.0"
+    assert display_version() == "4.0"
 
 
 # ---------------------------------------------------------------------------
@@ -115,7 +117,7 @@ def test_app_title_without_prefix_uses_brand_then_version_suffix() -> None:
     """The bare-window title format is ``<APP_NAME> (v<version>)``
     with the version suffix non-optional — this is what the build
     cookbook step 0 validates against on every release."""
-    assert app_title() == "CVFR Route Master (v3.3)"
+    assert app_title() == "CVFR Route Master (v4.0)"
 
 
 def test_app_title_with_prefix_uses_em_dash_separator() -> None:
@@ -124,15 +126,15 @@ def test_app_title_with_prefix_uses_em_dash_separator() -> None:
     a code-review LGTM that swaps it for a hyphen or colon doesn't
     silently land a UX regression — window-manager taskbar
     grouping rules and screenshots both key on the exact pattern."""
-    assert app_title("Loading") == "Loading \u2014 CVFR Route Master (v3.3)"
-    assert app_title("Waypoints") == "Waypoints \u2014 CVFR Route Master (v3.3)"
+    assert app_title("Loading") == "Loading \u2014 CVFR Route Master (v4.0)"
+    assert app_title("Waypoints") == "Waypoints \u2014 CVFR Route Master (v4.0)"
 
 
 def test_app_title_empty_string_prefix_is_treated_as_no_prefix() -> None:
     """``app_title("")`` (rather than ``app_title()``) is the kind
     of call a refactor might emit if a caller's prefix variable
     is uninitialised. It should NOT render as ``" — CVFR Route
-    Master (v3.3)"`` with a stray leading em-dash; treat empty
+    Master (v4.0)"`` with a stray leading em-dash; treat empty
     string like the missing-arg case."""
     assert app_title("") == app_title()
 
@@ -148,8 +150,8 @@ def test_app_title_tracks_version_changes(
     import cvfr_routemaster as pkg
 
     monkeypatch.setattr(pkg, "__version__", "4.0.0")
-    assert pkg.app_title() == "CVFR Route Master (v4)"
-    assert pkg.app_title("Loading") == "Loading \u2014 CVFR Route Master (v4)"
+    assert pkg.app_title() == "CVFR Route Master (v4.0)"
+    assert pkg.app_title("Loading") == "Loading \u2014 CVFR Route Master (v4.0)"
 
     monkeypatch.setattr(pkg, "__version__", "3.3.1")
     assert pkg.app_title() == "CVFR Route Master (v3.3.1)"

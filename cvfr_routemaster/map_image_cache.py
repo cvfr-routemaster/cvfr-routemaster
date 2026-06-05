@@ -49,9 +49,14 @@ CACHE_FORMAT_VERSION = 2
 MAP_RENDER_LOGIC_VERSION = 1
 
 
-def _cache_dir(project_root: Path) -> Path:
+def _cache_dir(project_root: Path, mode_id: str | None = None) -> Path:
+    # ``mode_id is None`` keeps the legacy flat layout
+    # (``.cvfr_routemaster/``) for pre-v4 callers and tests; an
+    # explicit mode namespaces under ``.cvfr_routemaster/<mode_id>/``.
     d = project_root / ".cvfr_routemaster"
-    d.mkdir(exist_ok=True)
+    if mode_id is not None:
+        d = d / mode_id
+    d.mkdir(parents=True, exist_ok=True)
     return d
 
 
@@ -116,6 +121,7 @@ def try_load_map_png_cache(
     *,
     render_dpi: float,
     max_edge_px: int,
+    mode_id: str | None = None,
 ) -> tuple[QImage, QImage, CropMeta, CropMeta, float] | None:
     """Return ``(img_n, img_s, crop_n, crop_s, effective_render_dpi)`` on a hit.
 
@@ -133,7 +139,7 @@ def try_load_map_png_cache(
     if not np.is_file() or not sp.is_file():
         return None
 
-    base = _cache_dir(project_root)
+    base = _cache_dir(project_root, mode_id)
     meta_path = base / "map_images_meta.json"
     png_n = base / "map_north.png"
     png_s = base / "map_south.png"
@@ -190,6 +196,7 @@ def save_map_png_cache(
     crop_n: CropMeta,
     crop_s: CropMeta,
     effective_render_dpi: float,
+    mode_id: str | None = None,
 ) -> None:
     """Write PNGs and manifest after a fresh render.
 
@@ -203,7 +210,7 @@ def save_map_png_cache(
     if img_n.isNull() or img_s.isNull() or not np.is_file() or not sp.is_file():
         return
 
-    base = _cache_dir(project_root)
+    base = _cache_dir(project_root, mode_id)
     png_n = base / "map_north.png"
     png_s = base / "map_south.png"
     meta_path = base / "map_images_meta.json"

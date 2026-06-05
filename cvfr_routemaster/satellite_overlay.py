@@ -99,7 +99,7 @@ from __future__ import annotations
 
 import math
 from collections import OrderedDict
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -1489,6 +1489,7 @@ class MultiZoomSatelliteOverlay:
         initial_view_scale: float = MULTIZOOM_BASE_VIEW_SCALE,
         chart_seam_partition: ChartSeamPartition | None = None,
         sheet_z_bump: float = 0.0,
+        on_zoom_built: Callable[[int, int], None] | None = None,
     ) -> None:
         """Construct one per-zoom overlay for each configured zoom.
 
@@ -1539,7 +1540,8 @@ class MultiZoomSatelliteOverlay:
         ph = placeholder if placeholder is not None else make_loading_placeholder()
 
         self._overlays: dict[int, SatelliteOverlay] = {}
-        for z in levels:
+        total_levels = len(levels)
+        for built_idx, z in enumerate(levels):
             # Per-zoom item z-value layered so coarser overlays
             # sit *under* finer ones inside the chart pixmap's
             # parent z-slot. Z=12 paints first, then z=13 on top,
@@ -1592,6 +1594,12 @@ class MultiZoomSatelliteOverlay:
                 tile_z_value=tile_z,
                 chart_seam_partition=chart_seam_partition,
             )
+            # Report per-zoom build progress so a caller showing a dialog can
+            # pump the event loop between these (multi-thousand-item) layers
+            # — the construction is synchronous on the GUI thread, so without
+            # this the toggle-on rebuild looks frozen for several seconds.
+            if on_zoom_built is not None:
+                on_zoom_built(built_idx + 1, total_levels)
         self._zoom_levels = levels
         self._visible_default = False
         self._active_zoom: int = select_zoom_for_view_scale(

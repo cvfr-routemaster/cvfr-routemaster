@@ -65,7 +65,7 @@ PySide6 = pytest.importorskip("PySide6")
 
 from PySide6.QtCore import QSettings  # noqa: E402
 
-from cvfr_routemaster import settings_store  # noqa: E402
+from cvfr_routemaster import map_modes, settings_store  # noqa: E402
 from cvfr_routemaster.main_window import MainWindow  # noqa: E402
 from cvfr_routemaster.settings_store import (  # noqa: E402
     save_autoload_enabled,
@@ -94,12 +94,22 @@ class _AutoloadHarness:
     counts ``_load_all`` invocations, and binds the REAL unbound
     methods from :class:`MainWindow` so any signature/contract drift
     is caught here too.
+
+    ``_sources_set`` is mode-aware (it checks the active mode's declared
+    ``sheet_keys``), so the harness also carries a ``_map_mode``. It
+    defaults to CVFR — the 3-sheet (north/south/back) product these
+    legacy tests were written against — and can be set to a 2-sheet mode
+    (LSA) to exercise the back-optional behaviour.
     """
 
-    def __init__(self, north: str, south: str, back: str) -> None:
+    def __init__(
+        self, north: str, south: str, back: str, *, mode_id: str = "cvfr"
+    ) -> None:
         self._source_north = north
         self._source_south = south
         self._source_back = back
+        self._map_mode_id = mode_id
+        self._map_mode = map_modes.get_mode(mode_id)
         self.load_all_calls: int = 0
 
     def _load_all(self) -> None:
@@ -161,6 +171,20 @@ def test_sources_set_returns_false_when_all_sources_empty():
 
 def test_sources_set_returns_false_when_north_only_set():
     h = _AutoloadHarness(CAAI_NORTH, "", "")
+    assert h._sources_set() is False
+
+
+def test_sources_set_is_mode_aware_lsa_back_optional():
+    """LSA is a 2-sheet product (north + south, no back). Its empty
+    ``_source_back`` must NOT read as 'sources not set' — otherwise
+    autoload silently skips and the chart never builds on a launch where
+    LSA is the active mode (the second-launch-LSA black-screen bug)."""
+    h = _AutoloadHarness(CAAI_NORTH, CAAI_SOUTH, "", mode_id="lsa")
+    assert h._sources_set() is True
+
+
+def test_sources_set_lsa_still_requires_north_and_south():
+    h = _AutoloadHarness(CAAI_NORTH, "", "", mode_id="lsa")
     assert h._sources_set() is False
 
 
@@ -232,6 +256,16 @@ def test_autoload_does_not_fire_when_no_sources_set(isolated_settings):
     h = _AutoloadHarness("", "", "")
     h._maybe_autoload_on_start()
     assert h.load_all_calls == 0
+
+
+def test_autoload_fires_for_lsa_with_no_back_source(isolated_settings):
+    """Second-launch-in-LSA regression: a 2-sheet mode with north + south
+    set (and an empty back) must autoload, calling ``_load_all`` so the
+    chart actually builds."""
+    save_autoload_enabled(True)
+    h = _AutoloadHarness(CAAI_NORTH, CAAI_SOUTH, "", mode_id="lsa")
+    h._maybe_autoload_on_start()
+    assert h.load_all_calls == 1
 
 
 def test_autoload_disabled_takes_precedence_over_sources_set(isolated_settings):

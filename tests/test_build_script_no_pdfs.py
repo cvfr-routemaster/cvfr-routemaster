@@ -146,13 +146,13 @@ def _make_fake_release(release_root: Path) -> None:
     for ``_write_shipped_derived_files`` to do its work without
     bailing on "missing meta".
 
-    Concretely: a ``.cvfr_routemaster/`` directory with a stub
-    ``geo_calibration.json`` carrying ``map_layout`` blocks for
-    both sheets, and a stub ``map_images_meta.json`` so
-    :func:`write_shipped_map_layout`'s fallback math has the
-    inputs it needs."""
-    cache_dir = release_root / ".cvfr_routemaster"
-    cache_dir.mkdir(parents=True, exist_ok=True)
+    v4 reads/writes per-mode: each registered mode gets its own
+    ``.cvfr_routemaster/<mode_id>/`` with a stub ``geo_calibration.json``
+    carrying ``map_layout`` blocks for both sheets and a stub
+    ``map_images_meta.json`` so :func:`write_shipped_map_layout`'s
+    fallback math has the inputs it needs."""
+    from cvfr_routemaster import map_modes
+
     geo = {
         "north": {
             "pdf": {"path": "N.pdf", "mtime_ns": 100, "size": 1000},
@@ -165,30 +165,47 @@ def _make_fake_release(release_root: Path) -> None:
             "anchors": [],
         },
     }
-    (cache_dir / "geo_calibration.json").write_text(
-        json.dumps(geo, indent=2), encoding="utf-8"
-    )
     meta = {
         "north_pdf": {"path": "N.pdf", "mtime_ns": 100, "size": 1000},
         "south_pdf": {"path": "S.pdf", "mtime_ns": 200, "size": 2000},
         "north_crop": {"height_px": 2000},
         "south_crop": {"height_px": 2000},
     }
-    (cache_dir / "map_images_meta.json").write_text(
-        json.dumps(meta, indent=2), encoding="utf-8"
-    )
+    for mode_id in map_modes.mode_ids():
+        cache_dir = release_root / ".cvfr_routemaster" / mode_id
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        (cache_dir / "geo_calibration.json").write_text(
+            json.dumps(geo, indent=2), encoding="utf-8"
+        )
+        (cache_dir / "map_images_meta.json").write_text(
+            json.dumps(meta, indent=2), encoding="utf-8"
+        )
+
+
+def _expected_chart_sources(mode_id: str) -> dict[str, str]:
+    """Per-mode ``chart_sources.json`` content from the registry —
+    each sheet's ``default_url`` keyed by its sheet key (north /
+    south / back)."""
+    from cvfr_routemaster import map_modes
+
+    mode = map_modes.get_mode(mode_id)
+    return {
+        sheet.key: sheet.default_url
+        for sheet in mode.sheets
+        if sheet.key in ("north", "south", "back")
+    }
 
 
 def test_windows_write_shipped_derived_files_writes_chart_sources_json(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    """The new build step must bake the three CAAI URLs into
-    ``release/.cvfr_routemaster/chart_sources.json``. Otherwise
-    a fresh-install user opens Map File Settings to three empty
+    """The build step must bake each mode's CAAI URLs into its own
+    ``release/.cvfr_routemaster/<mode_id>/chart_sources.json``.
+    Otherwise a fresh-install user opens Map File Settings to empty
     fields with no idea what to paste."""
     from scripts import build_release
-    from cvfr_routemaster.chart_source import CAAI_CHART_URLS
+    from cvfr_routemaster import map_modes
 
     release_root = tmp_path / "release"
     release_root.mkdir()
@@ -199,16 +216,19 @@ def test_windows_write_shipped_derived_files_writes_chart_sources_json(
 
     build_release._write_shipped_derived_files()
 
-    out = json.loads(
-        (release_root / ".cvfr_routemaster" / "chart_sources.json").read_text(
-            encoding="utf-8"
+    for mode_id in map_modes.mode_ids():
+        out = json.loads(
+            (
+                release_root
+                / ".cvfr_routemaster"
+                / mode_id
+                / "chart_sources.json"
+            ).read_text(encoding="utf-8")
         )
-    )
-    assert out == {
-        "north": CAAI_CHART_URLS["north"],
-        "south": CAAI_CHART_URLS["south"],
-        "back": CAAI_CHART_URLS["back"],
-    }
+        assert out == _expected_chart_sources(mode_id), (
+            f"chart_sources.json for {mode_id!r} must hold that mode's "
+            f"registry default URLs"
+        )
 
 
 def test_linux_write_shipped_derived_files_writes_chart_sources_json(
@@ -217,7 +237,7 @@ def test_linux_write_shipped_derived_files_writes_chart_sources_json(
 ) -> None:
     """Linux mirror of the Windows test above — same contract."""
     from scripts import build_release_for_linux
-    from cvfr_routemaster.chart_source import CAAI_CHART_URLS
+    from cvfr_routemaster import map_modes
 
     release_root = tmp_path / "release-linux"
     release_root.mkdir()
@@ -230,16 +250,96 @@ def test_linux_write_shipped_derived_files_writes_chart_sources_json(
 
     build_release_for_linux._write_shipped_derived_files()
 
-    out = json.loads(
-        (release_root / ".cvfr_routemaster" / "chart_sources.json").read_text(
-            encoding="utf-8"
+    for mode_id in map_modes.mode_ids():
+        out = json.loads(
+            (
+                release_root
+                / ".cvfr_routemaster"
+                / mode_id
+                / "chart_sources.json"
+            ).read_text(encoding="utf-8")
         )
-    )
-    assert out == {
-        "north": CAAI_CHART_URLS["north"],
-        "south": CAAI_CHART_URLS["south"],
-        "back": CAAI_CHART_URLS["back"],
-    }
+        assert out == _expected_chart_sources(mode_id), (
+            f"chart_sources.json for {mode_id!r} must hold that mode's "
+            f"registry default URLs"
+        )
+
+
+def test_windows_copy_seed_cache_is_per_mode_and_ships_marker(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """v4 ships seed caches under per-mode namespaces
+    (``.cvfr_routemaster/<mode_id>/``) — never the legacy flat
+    layout — and drops a ``.v4_migrated`` marker so a fresh install
+    skips the flat→namespaced migration. The big rendered PNGs and
+    downloaded ``charts/`` PDFs must NOT be copied (derivative CAAI
+    material)."""
+    from scripts import build_release
+    from cvfr_routemaster import map_modes
+
+    dev_cache = tmp_path / "dev-cache"
+    for mode_id in map_modes.mode_ids():
+        mode_dir = dev_cache / mode_id
+        mode_dir.mkdir(parents=True)
+        # A representative subset of the per-mode cache files, plus a
+        # rendered PNG and a downloaded chart that must be left behind.
+        (mode_dir / "geo_calibration.json").write_text("{}")
+        (mode_dir / "waypoints_cache.json").write_text("{}")
+        (mode_dir / "map_north.png").write_bytes(b"\x89PNG stub")
+        charts = mode_dir / "charts"
+        charts.mkdir()
+        (charts / f"{mode_id}_north.pdf").write_bytes(b"%PDF stub")
+
+    release_root = tmp_path / "release"
+    release_root.mkdir()
+    monkeypatch.setattr(build_release, "DEV_CACHE_DIR", dev_cache)
+    monkeypatch.setattr(build_release, "RELEASE_DIR", release_root)
+
+    build_release._copy_seed_cache()
+
+    cache_root = release_root / ".cvfr_routemaster"
+    for mode_id in map_modes.mode_ids():
+        assert (cache_root / mode_id / "geo_calibration.json").is_file()
+        assert (cache_root / mode_id / "waypoints_cache.json").is_file()
+        # Rendered PNGs and downloaded charts are NOT shipped.
+        assert not (cache_root / mode_id / "map_north.png").exists()
+        assert not (cache_root / mode_id / "charts").exists()
+    # Flat seed must not be written any more.
+    assert not (cache_root / "geo_calibration.json").exists()
+    # Migration marker shipped.
+    assert (cache_root / ".v4_migrated").is_file()
+
+
+def test_windows_write_shipped_derived_files_writes_per_mode_map_layout(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Each mode must get its own ``map_layout.json`` derived from
+    that mode's calibration, so a fresh install places the sheets
+    correctly in whichever product is opened first."""
+    from scripts import build_release
+    from cvfr_routemaster import map_modes
+
+    release_root = tmp_path / "release"
+    release_root.mkdir()
+    _make_fake_release(release_root)
+
+    monkeypatch.setattr(build_release, "RELEASE_DIR", release_root)
+    monkeypatch.setattr(build_release, "REPO_ROOT", tmp_path)
+
+    build_release._write_shipped_derived_files()
+
+    for mode_id in map_modes.mode_ids():
+        layout = release_root / ".cvfr_routemaster" / mode_id / "map_layout.json"
+        assert layout.is_file(), (
+            f"{mode_id} must get a per-mode map_layout.json"
+        )
+        data = json.loads(layout.read_text(encoding="utf-8"))
+        # Derived from the stub calibration in _make_fake_release.
+        assert data["north_x"] == 0.0
+        assert data["south_y"] == 2000.0
 
 
 # ---------------------------------------------------------------------------

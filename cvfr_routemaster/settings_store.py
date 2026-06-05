@@ -492,12 +492,24 @@ def _qsetting_path_is_usable(value: str) -> bool:
 _CHART_SOURCES_FILENAME: str = "chart_sources.json"
 
 
-def chart_sources_json_path(project_root: Path) -> Path:
-    """Path to the shipped chart-sources defaults JSON."""
-    return project_root / ".cvfr_routemaster" / _CHART_SOURCES_FILENAME
+def chart_sources_json_path(
+    project_root: Path, mode_id: str | None = None
+) -> Path:
+    """Path to the shipped chart-sources defaults JSON.
+
+    Per-mode when ``mode_id`` is given
+    (``.cvfr_routemaster/<mode_id>/chart_sources.json``); legacy flat
+    location otherwise.
+    """
+    base = project_root / ".cvfr_routemaster"
+    if mode_id is not None:
+        base = base / mode_id
+    return base / _CHART_SOURCES_FILENAME
 
 
-def load_shipped_chart_sources(project_root: Path) -> dict[str, str]:
+def load_shipped_chart_sources(
+    project_root: Path, mode_id: str | None = None
+) -> dict[str, str]:
     """Return ``{sheet: source_string}`` from the shipped defaults
     JSON, or ``{}`` if no file exists / is malformed.
 
@@ -511,7 +523,7 @@ def load_shipped_chart_sources(project_root: Path) -> dict[str, str]:
     string-valued requirement filters out an accidental ``null``
     or non-string value that a hand-edit might introduce.
     """
-    path = chart_sources_json_path(project_root)
+    path = chart_sources_json_path(project_root, mode_id)
     if not path.is_file():
         return {}
     try:
@@ -531,6 +543,7 @@ def load_shipped_chart_sources(project_root: Path) -> dict[str, str]:
 def save_shipped_chart_sources(
     project_root: Path,
     sources: dict[str, str],
+    mode_id: str | None = None,
 ) -> None:
     """Write the chart-sources defaults JSON.
 
@@ -541,8 +554,8 @@ def save_shipped_chart_sources(
 
     Keys not in ``("north", "south", "back")`` are dropped.
     """
-    target_dir = project_root / ".cvfr_routemaster"
-    target_dir.mkdir(parents=True, exist_ok=True)
+    target = chart_sources_json_path(project_root, mode_id)
+    target.parent.mkdir(parents=True, exist_ok=True)
     clean = {
         key: sources[key]
         for key in ("north", "south", "back")
@@ -550,7 +563,6 @@ def save_shipped_chart_sources(
         and isinstance(sources[key], str)
         and sources[key]
     }
-    target = chart_sources_json_path(project_root)
     tmp = target.with_suffix(target.suffix + ".tmp")
     tmp.write_text(
         json.dumps(clean, indent=2, ensure_ascii=False) + "\n",
@@ -559,7 +571,42 @@ def save_shipped_chart_sources(
     tmp.replace(target)
 
 
-def load_pdf_paths(project_root: Path | None = None) -> tuple[str, str, str]:
+def _mode_key(key: str, mode_id: str | None) -> str:
+    """QSettings key for a per-mode setting.
+
+    ``mode_id is None`` returns the legacy *flat* key (pre-v4 layout
+    and the existing test suite, which has no mode concept). An
+    explicit ``mode_id`` namespaces under ``modes/<mode_id>/<key>`` so
+    each chart product keeps independent sources / layout / viewport.
+    The running app always passes the active mode; the one-time
+    v3.3→v4 migration relocates flat keys into ``modes/cvfr/``.
+    """
+    if mode_id is None:
+        return key
+    return f"modes/{mode_id}/{key}"
+
+
+#: Global (NOT per-mode) QSettings key naming the last-active chart
+#: product. Read on startup to restore the user's mode; persisted on
+#: every successful mode switch.
+CURRENT_MAP_MODE_KEY: str = "current_map_mode"
+
+
+def load_current_map_mode() -> str:
+    """Last-active map-mode id, or ``""`` if never set (fresh install
+    or pre-v4 settings). Callers coerce unknown/empty ids to the
+    default via :func:`cvfr_routemaster.map_modes.coerce_mode_id`."""
+    return str(_settings().value(CURRENT_MAP_MODE_KEY, "", str) or "")
+
+
+def save_current_map_mode(mode_id: str) -> None:
+    """Persist the active map-mode id (global, survives mode switches)."""
+    _settings().setValue(CURRENT_MAP_MODE_KEY, str(mode_id))
+
+
+def load_pdf_paths(
+    project_root: Path | None = None, mode_id: str | None = None
+) -> tuple[str, str, str]:
     """Resolve the three chart-source strings (path or URL each)
     with this precedence:
 
@@ -583,12 +630,12 @@ def load_pdf_paths(project_root: Path | None = None) -> tuple[str, str, str]:
     this yet" and prompt via Map File Settings.
     """
     s = _settings()
-    north = s.value("pdf_north", "", str)
-    south = s.value("pdf_south", "", str)
-    back = s.value("pdf_back", "", str)
+    north = s.value(_mode_key("pdf_north", mode_id), "", str)
+    south = s.value(_mode_key("pdf_south", mode_id), "", str)
+    back = s.value(_mode_key("pdf_back", mode_id), "", str)
 
     if project_root:
-        shipped = load_shipped_chart_sources(project_root)
+        shipped = load_shipped_chart_sources(project_root, mode_id)
         # Layer 2 — chart_sources.json defaults.
         if not _qsetting_path_is_usable(north):
             north = shipped.get("north", north)
@@ -596,18 +643,49 @@ def load_pdf_paths(project_root: Path | None = None) -> tuple[str, str, str]:
             south = shipped.get("south", south)
         if not _qsetting_path_is_usable(back):
             back = shipped.get("back", back)
-        # Layer 3 — legacy filesystem autodiscovery, only if the
-        # shipped-defaults layer ALSO didn't supply a value.
-        if not _qsetting_path_is_usable(north):
-            north = _autodiscover_pdf(project_root, "CVFR-NORTH-OCT-2025-UPD2.pdf") or north
-        if not _qsetting_path_is_usable(south):
-            south = _autodiscover_pdf(project_root, "CVFR-SOUTH-OCT-2025-UPD2.pdf") or south
-        if not _qsetting_path_is_usable(back):
-            back = _autodiscover_pdf(project_root, "CVFR-BACK-PAGES-OCT-2025-UPD2.pdf") or back
+        # Layer 3 — legacy filesystem autodiscovery. CVFR-only: the
+        # discovery filenames are the CVFR sheet names, so this layer
+        # must NOT fire for other modes (otherwise switching to LSA on a
+        # machine with the legacy CVFR PDFs in ``map-pdfs/`` would wrongly
+        # adopt the CVFR files as LSA sources). ``mode_id is None`` is the
+        # pre-v4 / test path and stays CVFR-flavoured.
+        if mode_id in (None, "cvfr"):
+            if not _qsetting_path_is_usable(north):
+                north = _autodiscover_pdf(project_root, "CVFR-NORTH-OCT-2025-UPD2.pdf") or north
+            if not _qsetting_path_is_usable(south):
+                south = _autodiscover_pdf(project_root, "CVFR-SOUTH-OCT-2025-UPD2.pdf") or south
+            if not _qsetting_path_is_usable(back):
+                back = _autodiscover_pdf(project_root, "CVFR-BACK-PAGES-OCT-2025-UPD2.pdf") or back
+
+    # Layer 4 — map-mode registry defaults (v4). For a mode the user has
+    # never configured (the common case the first time they switch to
+    # LSA), seed each declared sheet from its registry ``default_url`` so
+    # the download-on-first-use flow just works without an empty Settings
+    # dialog. CVFR is deliberately excluded: it is fully covered by the
+    # shipped chart_sources.json in production, and the legacy contract
+    # (with ``project_root is None``, return the raw saved QSettings
+    # values verbatim) must be preserved for it. Imported lazily to avoid
+    # a module-import cycle (map_modes imports chart_source).
+    if mode_id and mode_id != "cvfr":
+        from . import map_modes
+
+        if map_modes.has_mode(mode_id):
+            defaults = {
+                sheet.key: sheet.default_url
+                for sheet in map_modes.get_mode(mode_id).sheets
+            }
+            if not _qsetting_path_is_usable(north):
+                north = defaults.get("north", north)
+            if not _qsetting_path_is_usable(south):
+                south = defaults.get("south", south)
+            if not _qsetting_path_is_usable(back):
+                back = defaults.get("back", back)
     return north, south, back
 
 
-def save_pdf_paths(north: str, south: str, back: str) -> None:
+def save_pdf_paths(
+    north: str, south: str, back: str, mode_id: str | None = None
+) -> None:
     """Persist the three chart-source strings (path or URL each).
 
     No validation — the Settings dialog has already done that.
@@ -617,9 +695,9 @@ def save_pdf_paths(north: str, south: str, back: str) -> None:
     sheet from".
     """
     s = _settings()
-    s.setValue("pdf_north", north)
-    s.setValue("pdf_south", south)
-    s.setValue("pdf_back", back)
+    s.setValue(_mode_key("pdf_north", mode_id), north)
+    s.setValue(_mode_key("pdf_south", mode_id), south)
+    s.setValue(_mode_key("pdf_back", mode_id), back)
 
 
 def load_autoload_enabled() -> bool:
@@ -630,7 +708,9 @@ def save_autoload_enabled(enabled: bool) -> None:
     _settings().setValue("autoload_on_start", bool(enabled))
 
 
-def load_map_layout(project_root: Path | None = None) -> dict[str, Any] | None:
+def load_map_layout(
+    project_root: Path | None = None, mode_id: str | None = None
+) -> dict[str, Any] | None:
     """Return saved north/south sheet positions/scales, or None to
     fall back to hard-coded vertical-stack defaults.
 
@@ -683,22 +763,24 @@ def load_map_layout(project_root: Path | None = None) -> dict[str, Any] | None:
             pre-fallback version.
     """
     s = _settings()
-    if s.value("map_layout_saved", False, bool):
+    if s.value(_mode_key("map_layout_saved", mode_id), False, bool):
         return {
-            "north_x": float(s.value("map_north_x", 0.0)),
-            "north_y": float(s.value("map_north_y", 0.0)),
-            "north_scale": float(s.value("map_north_scale", 1.0)),
-            "south_x": float(s.value("map_south_x", 0.0)),
-            "south_y": float(s.value("map_south_y", 0.0)),
-            "south_scale": float(s.value("map_south_scale", 1.0)),
-            "selected": str(s.value("map_selected_sheet", "south")),
+            "north_x": float(s.value(_mode_key("map_north_x", mode_id), 0.0)),
+            "north_y": float(s.value(_mode_key("map_north_y", mode_id), 0.0)),
+            "north_scale": float(s.value(_mode_key("map_north_scale", mode_id), 1.0)),
+            "south_x": float(s.value(_mode_key("map_south_x", mode_id), 0.0)),
+            "south_y": float(s.value(_mode_key("map_south_y", mode_id), 0.0)),
+            "south_scale": float(s.value(_mode_key("map_south_scale", mode_id), 1.0)),
+            "selected": str(s.value(_mode_key("map_selected_sheet", mode_id), "south")),
         }
     if project_root is not None:
-        return _load_shipped_map_layout(project_root)
+        return _load_shipped_map_layout(project_root, mode_id)
     return None
 
 
-def _load_shipped_map_layout(project_root: Path) -> dict[str, Any] | None:
+def _load_shipped_map_layout(
+    project_root: Path, mode_id: str | None = None
+) -> dict[str, Any] | None:
     """Read ``<project_root>/.cvfr_routemaster/map_layout.json`` and
     return it shaped like a QSettings-loaded layout, or ``None`` on
     any failure mode.
@@ -721,7 +803,10 @@ def _load_shipped_map_layout(project_root: Path) -> dict[str, Any] | None:
     because the selected-sheet annotation is a UX preference, not a
     correctness invariant — calibration validity doesn't depend on it.
     """
-    path = project_root / ".cvfr_routemaster" / SHIPPED_MAP_LAYOUT_FILE
+    base = project_root / ".cvfr_routemaster"
+    if mode_id is not None:
+        base = base / mode_id
+    path = base / SHIPPED_MAP_LAYOUT_FILE
     if not path.is_file():
         return None
     try:
@@ -757,16 +842,17 @@ def save_map_layout(
     south_y: float,
     south_scale: float,
     selected: str,
+    mode_id: str | None = None,
 ) -> None:
     s = _settings()
-    s.setValue("map_layout_saved", True)
-    s.setValue("map_north_x", north_x)
-    s.setValue("map_north_y", north_y)
-    s.setValue("map_north_scale", north_scale)
-    s.setValue("map_south_x", south_x)
-    s.setValue("map_south_y", south_y)
-    s.setValue("map_south_scale", south_scale)
-    s.setValue("map_selected_sheet", selected)
+    s.setValue(_mode_key("map_layout_saved", mode_id), True)
+    s.setValue(_mode_key("map_north_x", mode_id), north_x)
+    s.setValue(_mode_key("map_north_y", mode_id), north_y)
+    s.setValue(_mode_key("map_north_scale", mode_id), north_scale)
+    s.setValue(_mode_key("map_south_x", mode_id), south_x)
+    s.setValue(_mode_key("map_south_y", mode_id), south_y)
+    s.setValue(_mode_key("map_south_scale", mode_id), south_scale)
+    s.setValue(_mode_key("map_selected_sheet", mode_id), selected)
 
 
 def save_map_view_navigation(
@@ -782,40 +868,43 @@ def save_map_view_navigation(
     m33: float,
     scroll_h: int,
     scroll_v: int,
+    mode_id: str | None = None,
 ) -> None:
     """Persist zoom/pan of the map QGraphicsView between sessions."""
     s = _settings()
-    s.setValue("map_view_saved", True)
-    s.setValue("map_view_m11", m11)
-    s.setValue("map_view_m12", m12)
-    s.setValue("map_view_m13", m13)
-    s.setValue("map_view_m21", m21)
-    s.setValue("map_view_m22", m22)
-    s.setValue("map_view_m23", m23)
-    s.setValue("map_view_m31", m31)
-    s.setValue("map_view_m32", m32)
-    s.setValue("map_view_m33", m33)
-    s.setValue("map_view_scroll_h", int(scroll_h))
-    s.setValue("map_view_scroll_v", int(scroll_v))
+    s.setValue(_mode_key("map_view_saved", mode_id), True)
+    s.setValue(_mode_key("map_view_m11", mode_id), m11)
+    s.setValue(_mode_key("map_view_m12", mode_id), m12)
+    s.setValue(_mode_key("map_view_m13", mode_id), m13)
+    s.setValue(_mode_key("map_view_m21", mode_id), m21)
+    s.setValue(_mode_key("map_view_m22", mode_id), m22)
+    s.setValue(_mode_key("map_view_m23", mode_id), m23)
+    s.setValue(_mode_key("map_view_m31", mode_id), m31)
+    s.setValue(_mode_key("map_view_m32", mode_id), m32)
+    s.setValue(_mode_key("map_view_m33", mode_id), m33)
+    s.setValue(_mode_key("map_view_scroll_h", mode_id), int(scroll_h))
+    s.setValue(_mode_key("map_view_scroll_v", mode_id), int(scroll_v))
 
 
-def load_map_view_navigation() -> dict[str, float | int] | None:
+def load_map_view_navigation(
+    mode_id: str | None = None,
+) -> dict[str, float | int] | None:
     s = _settings()
-    if not s.value("map_view_saved", False, bool):
+    if not s.value(_mode_key("map_view_saved", mode_id), False, bool):
         return None
     try:
         return {
-            "m11": float(s.value("map_view_m11", 1.0)),
-            "m12": float(s.value("map_view_m12", 0.0)),
-            "m13": float(s.value("map_view_m13", 0.0)),
-            "m21": float(s.value("map_view_m21", 0.0)),
-            "m22": float(s.value("map_view_m22", 1.0)),
-            "m23": float(s.value("map_view_m23", 0.0)),
-            "m31": float(s.value("map_view_m31", 0.0)),
-            "m32": float(s.value("map_view_m32", 0.0)),
-            "m33": float(s.value("map_view_m33", 1.0)),
-            "scroll_h": int(s.value("map_view_scroll_h", 0)),
-            "scroll_v": int(s.value("map_view_scroll_v", 0)),
+            "m11": float(s.value(_mode_key("map_view_m11", mode_id), 1.0)),
+            "m12": float(s.value(_mode_key("map_view_m12", mode_id), 0.0)),
+            "m13": float(s.value(_mode_key("map_view_m13", mode_id), 0.0)),
+            "m21": float(s.value(_mode_key("map_view_m21", mode_id), 0.0)),
+            "m22": float(s.value(_mode_key("map_view_m22", mode_id), 1.0)),
+            "m23": float(s.value(_mode_key("map_view_m23", mode_id), 0.0)),
+            "m31": float(s.value(_mode_key("map_view_m31", mode_id), 0.0)),
+            "m32": float(s.value(_mode_key("map_view_m32", mode_id), 0.0)),
+            "m33": float(s.value(_mode_key("map_view_m33", mode_id), 1.0)),
+            "scroll_h": int(s.value(_mode_key("map_view_scroll_h", mode_id), 0)),
+            "scroll_v": int(s.value(_mode_key("map_view_scroll_v", mode_id), 0)),
         }
     except (TypeError, ValueError):
         return None

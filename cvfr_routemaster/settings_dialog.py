@@ -90,48 +90,77 @@ class SettingsDialog(QDialog):
     # in addition to ``Accepted`` to decide whether to call ``_load_all``.
     LOAD_NOW = 1201
 
+    #: Field label per sheet key. v4 modes only use these three keys
+    #: (CVFR: north/south/back; LSA: north/south), so a static map keeps
+    #: CVFR's long-standing label text byte-identical while still
+    #: supporting the smaller LSA field set. Unknown keys fall back to a
+    #: derived label.
+    SHEET_FIELD_LABELS: dict[str, str] = {
+        "north": "North map PDF:",
+        "south": "South map PDF:",
+        "back": "Back pages PDF:",
+    }
+    #: Short source name per sheet key, used in validation messages.
+    SHEET_SOURCE_NAMES: dict[str, str] = {
+        "north": "North map",
+        "south": "South map",
+        "back": "Back pages",
+    }
+
     def __init__(
         self,
-        north: str,
-        south: str,
-        back: str,
+        north: str = "",
+        south: str = "",
+        back: str = "",
         *,
+        sheets: list[tuple[str, str]] | None = None,
         autoload_on_start: bool,
         parent: QWidget | None = None,
     ) -> None:
+        """Mode-aware map-source dialog.
+
+        ``sheets`` is the v4 mode-driven entry point: a list of
+        ``(sheet_key, current_value)`` rendered in order (CVFR passes
+        north/south/back; LSA passes north/south). When ``sheets`` is
+        omitted the legacy positional ``north``/``south``/``back`` triple
+        is used (preserved so existing call-sites and tests keep working).
+        """
         super().__init__(parent)
         self.setWindowTitle("Map File Settings")
-        self._north = QLineEdit(north)
-        self._south = QLineEdit(south)
-        self._back = QLineEdit(back)
+        if sheets is None:
+            sheets = [("north", north), ("south", south), ("back", back)]
+
         # Placeholder copy hints at the path-or-URL contract. Shown
         # only when the field is empty — once a value is set the
         # placeholder vanishes, so it doesn't visually clutter the
         # populated-defaults state.
         placeholder = "Local PDF path or https:// URL"
-        self._north.setPlaceholderText(placeholder)
-        self._south.setPlaceholderText(placeholder)
-        self._back.setPlaceholderText(placeholder)
+        self._order: list[str] = [key for key, _ in sheets]
+        self._fields: dict[str, QLineEdit] = {}
+
+        form = QFormLayout()
+        for key, value in sheets:
+            field = QLineEdit(value)
+            field.setPlaceholderText(placeholder)
+            self._fields[key] = field
+            label = self.SHEET_FIELD_LABELS.get(key, f"{key.title()} PDF:")
+            form.addRow(label, self._row(field))
 
         self._autoload = QCheckBox("Load maps and waypoints automatically on startup")
         self._autoload.setChecked(autoload_on_start)
         self._autoload.setToolTip(
-            "When all three sources are set (and any URL sources are "
+            "When every source is set (and any URL sources are "
             "already downloaded into the cache), load without opening "
             "this dialog. URL sources that haven't yet been fetched "
             "will be downloaded interactively the first time you click "
             "Load now."
         )
 
-        form = QFormLayout()
-        form.addRow("North map PDF:", self._row(self._north))
-        form.addRow("South map PDF:", self._row(self._south))
-        form.addRow("Back pages PDF:", self._row(self._back))
-
         hint = QLabel(
             "Each field accepts either a local PDF path or an "
             "<code>https://</code> URL. URL sources are downloaded on "
-            "first use and cached under <code>.cvfr_routemaster/charts/</code> "
+            "first use and cached under the active map type's "
+            "<code>.cvfr_routemaster/&lt;mode&gt;/charts/</code> folder "
             "— a successful download is reused on every subsequent launch "
             "(no network calls in steady state). The Browse button picks "
             "a local file; for a URL, paste it directly into the field. "
@@ -171,6 +200,19 @@ class SettingsDialog(QDialog):
         root.addWidget(self._autoload)
         root.addWidget(self._load_now_btn)
         root.addWidget(buttons)
+
+    @property
+    def _north(self) -> QLineEdit:
+        """Back-compat accessor for the north field (legacy call-sites)."""
+        return self._fields["north"]
+
+    @property
+    def _south(self) -> QLineEdit:
+        return self._fields["south"]
+
+    @property
+    def _back(self) -> QLineEdit:
+        return self._fields["back"]
 
     def _row(self, field: QLineEdit) -> QWidget:
         w = QWidget()
@@ -247,16 +289,14 @@ class SettingsDialog(QDialog):
         Returns True when every field passes; otherwise pops a
         warning and returns False so the caller can bail.
         """
-        for label, text in (
-            ("North map", self._north.text().strip()),
-            ("South map", self._south.text().strip()),
-            ("Back pages", self._back.text().strip()),
-        ):
+        for key in self._order:
+            text = self._fields[key].text().strip()
+            label = self.SHEET_SOURCE_NAMES.get(key, key.title())
             if not text:
                 QMessageBox.warning(
                     self,
                     "Incomplete",
-                    "Please set all three map sources (path or URL).",
+                    "Please set every map source (path or URL).",
                 )
                 return False
             if self._looks_like_url(text):
@@ -291,12 +331,14 @@ class SettingsDialog(QDialog):
         if self._validate_paths():
             self.done(self.LOAD_NOW)
 
-    def paths(self) -> tuple[str, str, str]:
-        return (
-            self._north.text().strip(),
-            self._south.text().strip(),
-            self._back.text().strip(),
-        )
+    def paths(self) -> tuple[str, ...]:
+        """Field values in declared order (CVFR → 3-tuple, LSA → 2-tuple)."""
+        return tuple(self._fields[key].text().strip() for key in self._order)
+
+    def values_by_key(self) -> dict[str, str]:
+        """Field values keyed by sheet key — the mode-aware accessor the
+        v4 controller uses to map results back onto per-sheet state."""
+        return {key: self._fields[key].text().strip() for key in self._order}
 
     def autoload_on_start(self) -> bool:
         return self._autoload.isChecked()

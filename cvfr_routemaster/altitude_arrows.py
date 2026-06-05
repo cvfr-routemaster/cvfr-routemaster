@@ -380,6 +380,22 @@ MATCH_WIDE_CORRIDOR_RADIUS_NM: float = 1.8
 MATCH_WIDE_CORRIDOR_FWD_DIFF_DEG: float = 20.0
 
 
+#: Cross-track radius (nautical miles) for *left*-side wide-corridor
+#: rescue. The main rescue admits parallel-RIGHT arrows out to
+#: :data:`MATCH_WIDE_CORRIDOR_RADIUS_NM` (1.8 nm) because the chart's
+#: predominant convention prints the corridor's altitude column to the
+#: right of the route line. Left-of-track labels do occur (e.g. the LSA
+#: NIRYA→ZMGID westbound 1700 ft arrow printed ~0.77 nm south of the
+#: route), but a left arrow admitted at the full 1.8 nm is far more
+#: likely to be a neighbouring corridor's label, so the left side gets a
+#: deliberately tight radius — just past the 0.65 nm primary gate, with
+#: ~0.13 nm headroom over the NIRYA case. The same strict
+#: :data:`MATCH_WIDE_CORRIDOR_FWD_DIFF_DEG` parallelism + zero-overshoot
+#: gates still apply, so only an arrow clearly drawn ALONG this leg (not
+#: merely near it) qualifies.
+MATCH_WIDE_CORRIDOR_LEFT_RADIUS_NM: float = 0.90
+
+
 #: Plausible CVFR altitude range. Excludes ground / spot heights (typically
 #: < 300 ft) and IFR-only flight levels (we cap at FL95 ~ 9500 ft to admit
 #: any plausible VFR ceiling without admitting four-digit obstacle heights).
@@ -1565,6 +1581,7 @@ def match_altitudes_for_route(
     ),
     bend_rescue_max_leg_dist_nm: float = MATCH_BEND_RESCUE_MAX_LEG_DIST_NM,
     wide_corridor_radius_nm: float = MATCH_WIDE_CORRIDOR_RADIUS_NM,
+    wide_corridor_left_radius_nm: float = MATCH_WIDE_CORRIDOR_LEFT_RADIUS_NM,
     wide_corridor_fwd_diff_deg: float = MATCH_WIDE_CORRIDOR_FWD_DIFF_DEG,
 ) -> list[tuple[int, ...]]:
     """Match altitude arrows to *every* segment of a planned route at once.
@@ -1622,9 +1639,10 @@ def match_altitudes_for_route(
        triangle chain but the SB 800 ft arrows are printed along the
        LBG TMA boundary 1.0–1.8 nm to the west of that chain. The
        rescue only fires for legs still unknown after phases 1–3
-       and considers only **parallel-right, on-segment, tightly
-       bearing-aligned, unclaimed** arrows out to
-       ``wide_corridor_radius_nm``. Each candidate arrow is assigned
+       and considers only **on-segment, tightly bearing-aligned,
+       unclaimed** arrows: parallel-right out to
+       ``wide_corridor_radius_nm`` and parallel-left out to the tighter
+       ``wide_corridor_left_radius_nm``. Each candidate arrow is assigned
        to the unknown segment it fits best (lowest cross-track among
        eligible legs), so a single chart label doesn't smear across
        multiple legs even when the wide radius would allow it
@@ -2018,9 +2036,13 @@ def match_altitudes_for_route(
     #     phase 1; their semantics differ enough that wide-corridor
     #     rescue would just duplicate phase 1's logic at a riskier
     #     radius.
-    #   * Side of segment is RIGHT (parallel-right) — the predominant
-    #     chart labelling convention. Parallel-left arrows admitted at
-    #     1.8 nm radius are very likely from a neighbouring corridor.
+    #   * Side-specific cross-track cap: RIGHT (parallel-right) arrows —
+    #     the predominant chart labelling convention — out to the full
+    #     ``wide_corridor_radius_nm`` (1.8 nm); LEFT arrows only out to the
+    #     much tighter ``wide_corridor_left_radius_nm`` (~0.9 nm), since a
+    #     left arrow admitted at 1.8 nm is very likely a neighbouring
+    #     corridor's label. An on-the-line arrow (side 0) is left to the
+    #     primary gate.
     #   * Foot lies on segment (no endpoint overshoot) — the arrow
     #     must geographically sit alongside THIS leg, not the next one.
     #   * Cross-track ≤ ``wide_corridor_radius_nm``.
@@ -2050,23 +2072,33 @@ def match_altitudes_for_route(
                 seg.to_point.lat, seg.to_point.lon,
                 arrow.lat, arrow.lon,
             )
-            if d > wide_corridor_radius_nm:
-                continue
             if overshoot > 0.0:
-                continue
-            fwd_diff = _circular_diff_deg(
-                arrow.bearing_deg, seg_bearings[si]
-            )
-            if fwd_diff > wide_corridor_fwd_diff_deg:
                 continue
             side = _arrow_side_of_segment(
                 seg.from_point.lat, seg.from_point.lon,
                 seg.to_point.lat, seg.to_point.lon,
                 arrow.lat, arrow.lon,
             )
-            if side >= 0:
-                # +1 = LEFT of direction, 0 = on the line — neither
-                # counts as the chart's parallel-right convention.
+            # Side-specific cross-track cap. The chart's predominant
+            # convention prints the altitude column to the RIGHT of the
+            # route, so the right side gets the full wide radius; the
+            # LEFT side (e.g. LSA NIRYA→ZMGID's 1700 arrow ~0.77 nm south
+            # of a westbound leg) is admitted only just past the primary
+            # gate, where a parallel on-segment arrow is overwhelmingly
+            # the leg's own offset label rather than a neighbour's.
+            # ``side``: -1 = RIGHT of travel, +1 = LEFT, 0 = on the line.
+            if side < 0:
+                cap = wide_corridor_radius_nm
+            elif side > 0:
+                cap = wide_corridor_left_radius_nm
+            else:
+                continue  # on the line — primary gate already handled it
+            if d > cap:
+                continue
+            fwd_diff = _circular_diff_deg(
+                arrow.bearing_deg, seg_bearings[si]
+            )
+            if fwd_diff > wide_corridor_fwd_diff_deg:
                 continue
             eligible.setdefault(ai, []).append((si, d, fwd_diff))
 

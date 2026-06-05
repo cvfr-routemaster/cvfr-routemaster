@@ -119,6 +119,27 @@ def test_yellow_filter_rejects_none_for_strokes_only():
     assert not _is_yellowish_fill(None)
 
 
+def test_yellow_filter_rejects_lsa_route_colours():
+    """LSA (v4) draws routes in green / magenta / brown instead of the
+    CVFR green/blue. Altitude arrows stay yellow, so the unchanged
+    yellow filter must reject every LSA route fill — otherwise a route
+    arrowhead would be mistaken for an altitude label and pull a bogus
+    altitude onto the segment.
+    """
+    lsa_route_fills = {
+        "green": (0.13, 0.55, 0.13),
+        "magenta": (0.78, 0.0, 0.78),
+        "brown": (0.55, 0.27, 0.07),
+        # A lighter magenta/pink variant the chart sometimes uses.
+        "pink_magenta": (0.85, 0.20, 0.60),
+    }
+    for name, rgb in lsa_route_fills.items():
+        assert not _is_yellowish_fill(rgb), f"{name} {rgb} wrongly read as yellow"
+
+    # The altitude arrows themselves remain the canonical yellow.
+    assert _is_yellowish_fill((1.0, 0.944, 0.333))
+
+
 # ---------------------------------------------------------------------------
 # Altitude plausibility
 # ---------------------------------------------------------------------------

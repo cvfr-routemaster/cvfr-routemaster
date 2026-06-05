@@ -612,14 +612,18 @@ def lonlat_to_scene(
     return pixmap_item.mapToScene(local)
 
 
-def calibration_json_path(project_root: Path) -> Path:
+def calibration_json_path(project_root: Path, mode_id: str | None = None) -> Path:
     d = project_root / ".cvfr_routemaster"
-    d.mkdir(exist_ok=True)
+    if mode_id is not None:
+        d = d / mode_id
+    d.mkdir(parents=True, exist_ok=True)
     return d / "geo_calibration.json"
 
 
-def load_saved_calibration(project_root: Path) -> dict[str, Any]:
-    path = calibration_json_path(project_root)
+def load_saved_calibration(
+    project_root: Path, mode_id: str | None = None
+) -> dict[str, Any]:
+    path = calibration_json_path(project_root, mode_id)
     if not path.is_file():
         return {}
     try:
@@ -628,8 +632,10 @@ def load_saved_calibration(project_root: Path) -> dict[str, Any]:
         return {}
 
 
-def save_calibration_payload(project_root: Path, payload: dict[str, Any]) -> None:
-    path = calibration_json_path(project_root)
+def save_calibration_payload(
+    project_root: Path, payload: dict[str, Any], mode_id: str | None = None
+) -> None:
+    path = calibration_json_path(project_root, mode_id)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 

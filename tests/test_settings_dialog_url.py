@@ -389,3 +389,63 @@ def test_dialog_hint_label_mentions_url_support(
     assert "https" in combined.lower(), (
         "Settings dialog hint should mention the https:// scheme"
     )
+
+
+# ---------------------------------------------------------------------------
+# Mode-aware (v4): variable sheet set driven by the active map mode
+# ---------------------------------------------------------------------------
+
+
+def test_dialog_mode_aware_renders_only_given_sheets(
+    qapp: QApplication,
+) -> None:
+    """LSA-shaped construction shows two fields (north/south) and no
+    back-pages field — the dialog field set follows the mode."""
+    from PySide6.QtWidgets import QLabel
+
+    dlg = SettingsDialog(
+        sheets=[("north", "http://example/n.pdf"), ("south", "http://example/s.pdf")],
+        autoload_on_start=False,
+    )
+    assert set(dlg.values_by_key()) == {"north", "south"}
+    assert dlg.paths() == ("http://example/n.pdf", "http://example/s.pdf")
+    label_text = " ".join(lbl.text() for lbl in dlg.findChildren(QLabel))
+    assert "Back pages" not in label_text
+
+
+def test_dialog_mode_aware_values_by_key_roundtrip(
+    qapp: QApplication,
+) -> None:
+    dlg = SettingsDialog(
+        sheets=[("north", "n"), ("south", "s"), ("back", "b")],
+        autoload_on_start=False,
+    )
+    assert dlg.values_by_key() == {"north": "n", "south": "s", "back": "b"}
+
+
+def test_dialog_legacy_positional_still_three_fields(
+    qapp: QApplication,
+) -> None:
+    """The legacy positional triple keeps the CVFR three-field shape and
+    the long-standing label text."""
+    from PySide6.QtWidgets import QLabel
+
+    dlg = SettingsDialog("n", "s", "b", autoload_on_start=False)
+    assert dlg.paths() == ("n", "s", "b")
+    label_text = " ".join(lbl.text() for lbl in dlg.findChildren(QLabel))
+    assert "North map PDF:" in label_text
+    assert "Back pages PDF:" in label_text
+
+
+def test_dialog_mode_aware_validates_each_shown_field(
+    qapp: QApplication, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A two-field LSA dialog with one empty field is rejected."""
+    warned: list[tuple] = []
+    monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: warned.append(a))
+    dlg = SettingsDialog(
+        sheets=[("north", "http://example/n.pdf"), ("south", "")],
+        autoload_on_start=False,
+    )
+    assert dlg._validate_paths() is False
+    assert len(warned) == 1

@@ -406,6 +406,7 @@ def select_anchors_for_sheet(
     n: int,
     *,
     n_overlap: int = _DEFAULT_OVERLAP_ANCHORS,
+    preferred_overlap_codes: tuple[str, ...] = _PREFERRED_OVERLAP_CODES,
     target_km: float = 48.0,
     min_km: float = 24.0,
     max_km: float = 88.0,
@@ -446,9 +447,11 @@ def select_anchors_for_sheet(
     )
     if edge is None:
         return None
-    if n_overlap < 1:
+    if n_overlap < 1 or not preferred_overlap_codes:
         return edge
-    overlap = select_overlap_anchors(records, n=n_overlap)
+    overlap = select_overlap_anchors(
+        records, n=n_overlap, preferred_codes=preferred_overlap_codes
+    )
     if not overlap:
         return edge
     edge_codes = {r.code.casefold() for r in edge}

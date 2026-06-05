@@ -346,44 +346,94 @@ def normalize_url(url: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def charts_cache_dir(project_root: Path) -> Path:
+def mode_cache_dir(project_root: Path, mode_id: str | None = None) -> Path:
+    """Base cache directory for a map mode's per-project state.
+
+    This is the v4 namespacing anchor. Every mode owns a private
+    subtree under ``<project_root>/.cvfr_routemaster/<mode_id>/``
+    holding its rendered PNGs, calibration, waypoint cache, altitude
+    caches, downloaded PDFs (under ``charts/``), and derived seed
+    JSONs.
+
+    ``mode_id is None`` returns the legacy *flat*
+    ``<project_root>/.cvfr_routemaster/`` directory. This preserves
+    pre-v4 behaviour for callers (and the large existing test suite)
+    that have no mode concept; the running application always passes
+    an explicit ``mode_id`` so real usage is namespaced, and the
+    one-time startup migration relocates legacy flat caches into the
+    ``cvfr/`` namespace.
+
+    Does NOT create the directory.
+    """
+    base = project_root / ".cvfr_routemaster"
+    if mode_id is None:
+        return base
+    return base / mode_id
+
+
+def charts_cache_dir(project_root: Path, mode_id: str | None = None) -> Path:
     """Directory containing the URL-downloaded chart PDFs.
 
-    Located at ``<project_root>/.cvfr_routemaster/charts/`` — peer
-    to the existing cache JSONs so a friend inspecting the folder
-    sees ALL the per-project cache state in one place.
+    Located at ``<mode_cache_dir>/charts/``. With ``mode_id`` it is
+    per-mode (``.cvfr_routemaster/<mode_id>/charts/``); without it,
+    the legacy flat ``.cvfr_routemaster/charts/``.
 
     Does NOT create the directory; callers that intend to write
     here call :func:`ensure_charts_cache_dir`.
     """
-    return project_root / ".cvfr_routemaster" / CACHE_SUBDIR
+    return mode_cache_dir(project_root, mode_id) / CACHE_SUBDIR
 
 
-def ensure_charts_cache_dir(project_root: Path) -> Path:
+def ensure_charts_cache_dir(project_root: Path, mode_id: str | None = None) -> Path:
     """Create ``charts/`` if it doesn't exist; return the path."""
-    target = charts_cache_dir(project_root)
+    target = charts_cache_dir(project_root, mode_id)
     target.mkdir(parents=True, exist_ok=True)
     return target
 
 
-def cache_path_for_sheet(sheet_key: str, project_root: Path) -> Path:
-    """Local filesystem path where the URL-downloaded PDF for
-    ``sheet_key`` (``north`` / ``south`` / ``back``) lives.
+def _cache_filename_for_sheet(sheet_key: str, mode_id: str | None) -> str:
+    """Resolve the cache PDF filename for ``sheet_key`` under ``mode_id``.
 
-    Filenames are stable across runs (see :data:`CACHE_FILENAMES`),
-    so updating ``manifest.json`` to a new URL implies overwriting
-    the PDF at the same path.
+    For CVFR (and the legacy ``mode_id is None`` path) this is the
+    long-standing :data:`CACHE_FILENAMES` map. For other registered
+    modes (LSA) the filename comes from the mode's :class:`SheetDef`
+    (``lsa_north.pdf`` etc.) so each product's downloaded PDFs and
+    shipped seeds share one stable name. Imported lazily to avoid a
+    module-import cycle (``map_modes`` imports this module).
     """
+    if mode_id and mode_id != "cvfr":
+        from . import map_modes
+
+        if map_modes.has_mode(mode_id):
+            mode = map_modes.get_mode(mode_id)
+            for sheet in mode.sheets:
+                if sheet.key == sheet_key:
+                    return sheet.cache_pdf_filename
     if sheet_key not in CACHE_FILENAMES:
         raise ValueError(
             f"unknown sheet_key {sheet_key!r}; expected one of {SHEET_KEYS}"
         )
-    return charts_cache_dir(project_root) / CACHE_FILENAMES[sheet_key]
+    return CACHE_FILENAMES[sheet_key]
 
 
-def manifest_path(project_root: Path) -> Path:
-    """Path to the manifest JSON. One file for all three sheets."""
-    return charts_cache_dir(project_root) / MANIFEST_FILENAME
+def cache_path_for_sheet(
+    sheet_key: str, project_root: Path, mode_id: str | None = None
+) -> Path:
+    """Local filesystem path where the URL-downloaded PDF for
+    ``sheet_key`` lives, namespaced under the mode's ``charts/`` dir.
+
+    The filename is mode-aware (see :func:`_cache_filename_for_sheet`):
+    CVFR keeps :data:`CACHE_FILENAMES`; LSA uses its registry filenames.
+    Filenames are stable across runs, so updating ``manifest.json`` to a
+    new URL implies overwriting the PDF at the same path.
+    """
+    filename = _cache_filename_for_sheet(sheet_key, mode_id)
+    return charts_cache_dir(project_root, mode_id) / filename
+
+
+def manifest_path(project_root: Path, mode_id: str | None = None) -> Path:
+    """Path to the manifest JSON. One file per mode's ``charts/`` dir."""
+    return charts_cache_dir(project_root, mode_id) / MANIFEST_FILENAME
 
 
 # ---------------------------------------------------------------------------
@@ -391,7 +441,7 @@ def manifest_path(project_root: Path) -> Path:
 # ---------------------------------------------------------------------------
 
 
-def load_manifest(project_root: Path) -> dict[str, str]:
+def load_manifest(project_root: Path, mode_id: str | None = None) -> dict[str, str]:
     """Read ``manifest.json`` and return ``{sheet_key: url}``.
 
     Returns ``{}`` if the file doesn't exist or is malformed —
@@ -405,7 +455,7 @@ def load_manifest(project_root: Path) -> dict[str, str]:
     editing) are silently dropped from the in-memory view but
     preserved on disk (see :func:`save_manifest`).
     """
-    path = manifest_path(project_root)
+    path = manifest_path(project_root, mode_id)
     if not path.is_file():
         return {}
     try:
@@ -422,7 +472,9 @@ def load_manifest(project_root: Path) -> dict[str, str]:
     return out
 
 
-def save_manifest(project_root: Path, entries: dict[str, str]) -> None:
+def save_manifest(
+    project_root: Path, entries: dict[str, str], mode_id: str | None = None
+) -> None:
     """Write ``manifest.json`` with ``entries`` ``{sheet_key: url}``.
 
     Atomic: writes to ``manifest.json.tmp`` then renames over the
@@ -433,7 +485,7 @@ def save_manifest(project_root: Path, entries: dict[str, str]) -> None:
     sheet-scoped). The JSON is pretty-printed (indent=2) so a dev
     inspecting the file by hand can read it easily.
     """
-    cache_dir = ensure_charts_cache_dir(project_root)
+    cache_dir = ensure_charts_cache_dir(project_root, mode_id)
     clean: dict[str, str] = {
         key: entries[key]
         for key in SHEET_KEYS
@@ -620,6 +672,7 @@ def needs_download(
     sheet_key: str,
     normalized_active_url: str,
     project_root: Path,
+    mode_id: str | None = None,
 ) -> bool:
     """Return True iff the active URL doesn't match the manifest
     record (or the cached file is missing).
@@ -628,10 +681,10 @@ def needs_download(
     file. No network calls. Used by the load path to decide
     whether to show a "downloading" progress dialog.
     """
-    cache_file = cache_path_for_sheet(sheet_key, project_root)
+    cache_file = cache_path_for_sheet(sheet_key, project_root, mode_id)
     if not cache_file.is_file():
         return True
-    manifest = load_manifest(project_root)
+    manifest = load_manifest(project_root, mode_id)
     recorded = manifest.get(sheet_key)
     if recorded is None:
         return True
@@ -647,6 +700,7 @@ def resolve_chart_source(
     sheet_key: str,
     project_root: Path,
     on_progress: ProgressCallback | None = None,
+    mode_id: str | None = None,
 ) -> Path:
     """Resolve ``source`` (URL or local path) to a real on-disk
     :class:`Path`, downloading if necessary.
@@ -682,9 +736,9 @@ def resolve_chart_source(
         return Path(source)
 
     normalized = chart_src.normalized_url()
-    cache_file = cache_path_for_sheet(sheet_key, project_root)
+    cache_file = cache_path_for_sheet(sheet_key, project_root, mode_id)
 
-    if not needs_download(sheet_key, normalized, project_root):
+    if not needs_download(sheet_key, normalized, project_root, mode_id):
         return cache_file
 
     download_chart_pdf(
@@ -701,8 +755,8 @@ def resolve_chart_source(
     # previous state (the atomic rename ensures partial files
     # never become "the cached file"), so the next launch's
     # manifest-vs-cache consistency check still holds.
-    manifest = load_manifest(project_root)
+    manifest = load_manifest(project_root, mode_id)
     manifest[sheet_key] = normalized
-    save_manifest(project_root, manifest)
+    save_manifest(project_root, manifest, mode_id)
 
     return cache_file

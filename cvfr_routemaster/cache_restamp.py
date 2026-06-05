@@ -66,6 +66,12 @@ specific cache-JSON-file + JSON-path inside it lives in
 :data:`SHEET_FINGERPRINT_BINDINGS`. Adding a sixth cache JSON is
 a one-place edit there.
 
+One cache — the multi-source LSA ``waypoints_cache.json`` — keys
+its fingerprints in a ``sources`` *list* (one entry per source PDF,
+selected by its ``sheet`` value) rather than a single fixed JSON
+path, which the flat binding table can't express. That shape is
+restamped by :func:`_restamp_waypoint_sources`.
+
 Implementation note: we trust the URL serves the same byte
 content the dev calibrated against (the user picked the source;
 the build cookbook step 1 has the dev verify this before each
@@ -232,6 +238,7 @@ def restamp_sheet_fingerprints(
     project_root: Path,
     sheet_key: str,
     pdf_path: Path,
+    mode_id: str | None = None,
 ) -> SheetRestampReport:
     """Restamp every cache-JSON fingerprint block that references
     ``sheet_key`` to match ``pdf_path``'s current ``(mtime_ns, size)``.
@@ -279,6 +286,8 @@ def restamp_sheet_fingerprints(
 
     report = SheetRestampReport(sheet_key=sheet_key, pdf_path=pdf_path)
     cache_dir = project_root / ".cvfr_routemaster"
+    if mode_id is not None:
+        cache_dir = cache_dir / mode_id
 
     for cache_filename, json_path in SHEET_FINGERPRINT_BINDINGS[sheet_key]:
         cache_file = cache_dir / cache_filename
@@ -337,4 +346,75 @@ def restamp_sheet_fingerprints(
             )
         )
 
+    _restamp_waypoint_sources(
+        cache_dir, sheet_key, new_path_str, new_mtime_ns, new_size, report
+    )
+
     return report
+
+
+def _restamp_waypoint_sources(
+    cache_dir: Path,
+    sheet_key: str,
+    new_path_str: str,
+    new_mtime_ns: int,
+    new_size: int,
+    report: SheetRestampReport,
+) -> None:
+    """Restamp the multi-source ``waypoints_cache.json`` fingerprint
+    for ``sheet_key``.
+
+    Modes whose reporting points come from more than one PDF (LSA:
+    page 2 of both the north and south sheets) key their waypoint
+    cache on a ``sources`` *list* — ``[{"sheet": "north", "mtime_ns":
+    …, "size": …, "path": …}, …]`` — rather than the single
+    ``back_pdf`` block that the single-source (CVFR) waypoint cache
+    uses. The flat :data:`SHEET_FINGERPRINT_BINDINGS` walk can't
+    address a list element selected by its ``sheet`` value, so the
+    multi-source shape is handled here.
+
+    Without this, a fresh install that ships the LSA waypoint cache
+    would restamp calibration / render / altitude fingerprints after
+    downloading the LSA PDFs but leave the waypoint cache's per-source
+    ``mtime_ns`` at the dev's build-time value — so
+    :func:`waypoint_cache.load_cached_waypoints_multi` would reject it
+    on the mtime mismatch and re-run the (slow) full-OCR extraction.
+
+    No-op when ``waypoints_cache.json`` is absent, corrupt, has no
+    ``sources`` list (the single-source CVFR shape — already covered
+    by the ``back`` binding), or has no entry for ``sheet_key``.
+    """
+    wp_file = cache_dir / "waypoints_cache.json"
+    if not wp_file.is_file():
+        return
+    try:
+        raw = json.loads(wp_file.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return
+    if not isinstance(raw, dict):
+        return
+    sources = raw.get("sources")
+    if not isinstance(sources, list):
+        return
+    changed = False
+    for entry in sources:
+        if not isinstance(entry, dict) or entry.get("sheet") != sheet_key:
+            continue
+        old_mtime = int(entry.get("mtime_ns", 0) or 0)
+        old_size = int(entry.get("size", 0) or 0)
+        entry["path"] = new_path_str
+        entry["mtime_ns"] = new_mtime_ns
+        entry["size"] = new_size
+        changed = True
+        report.updates.append(
+            RestampFieldUpdate(
+                cache_file="waypoints_cache.json",
+                field_path=f"sources[sheet={sheet_key}]",
+                old_mtime_ns=old_mtime,
+                new_mtime_ns=new_mtime_ns,
+                old_size=old_size,
+                new_size=new_size,
+            )
+        )
+    if changed:
+        _atomic_write_json(wp_file, raw)
