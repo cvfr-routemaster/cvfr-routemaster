@@ -671,3 +671,58 @@ def test_switch_round_trip_keeps_scenes_resident(main_window, monkeypatch) -> No
     w._switch_map_mode("cvfr")
     assert w._scene is cvfr_scene
     assert w._view.scene() is cvfr_scene
+
+
+def _wp(code: str, lat: float, lon: float):
+    from cvfr_routemaster.waypoint_types import WaypointRecord
+
+    return WaypointRecord(
+        index=0,
+        code=code,
+        name_he=code,
+        reporting_type="",
+        lat=lat,
+        lon=lon,
+        lat_dms="",
+        lon_dms="",
+    )
+
+
+def test_resident_round_trip_restores_each_modes_waypoints(
+    main_window, monkeypatch
+) -> None:
+    """A wholesale scene restore must also restore that mode's waypoint data.
+
+    Regression: switching LSA -> CVFR left ``_waypoints_export`` (used by
+    ``_lookup_waypoint`` for route-point resolution) holding the LSA points
+    while the CVFR chart was on screen, breaking plotting.
+    """
+    from PySide6.QtWidgets import QGraphicsScene
+    from cvfr_routemaster.main_window import _ModeScene
+
+    w = main_window
+    cvfr_scene = w._scene
+    w._mode_scenes["cvfr"].built = True
+
+    cvfr_records = [_wp("LLBG", 32.0, 34.9), _wp("LLHA", 32.8, 35.0)]
+    w._set_waypoint_rows(cvfr_records)
+    w._records_raw = cvfr_records
+
+    lsa_records = [_wp("RUHOT", 30.8, 34.9), _wp("ORAKV", 32.5, 34.9)]
+    lsa_scene = QGraphicsScene(w)
+    w._mode_scenes["lsa"] = _ModeScene(
+        scene=lsa_scene, built=True, records_raw=lsa_records
+    )
+
+    monkeypatch.setattr(w, "_apply_saved_map_view", lambda: None)
+    monkeypatch.setattr(w, "_sync_restored_satellite_state", lambda: None)
+
+    w._switch_map_mode("lsa")
+    assert {r.code for r in w._waypoints_export} == {"RUHOT", "ORAKV"}
+    assert w._lookup_waypoint("ORAKV") is not None
+    assert w._lookup_waypoint("LLBG") is None
+
+    w._switch_map_mode("cvfr")
+    assert {r.code for r in w._waypoints_export} == {"LLBG", "LLHA"}
+    assert w._lookup_waypoint("LLBG") is not None
+    assert w._lookup_waypoint("ORAKV") is None

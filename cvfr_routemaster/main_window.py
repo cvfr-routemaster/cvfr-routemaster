@@ -1001,6 +1001,14 @@ class _ModeScene:
     selected: str = "south"
     altitude_arrows_north: list = field(default_factory=list)
     altitude_arrows_south: list = field(default_factory=list)
+    #: The mode's loaded waypoint records. These are *data*, not scene items,
+    #: but they're per-mode state that must travel with the scene: the route
+    #: panel, ``_lookup_waypoint`` (route-point resolution by code), the
+    #: waypoint table model and the in-memory SQLite are all rebuilt from this
+    #: list. Without snapshotting/restoring it, a wholesale scene restore
+    #: leaves the *previous* mode's waypoints active (LSA codes/positions while
+    #: the CVFR chart is on screen), which breaks plotting.
+    records_raw: "list | None" = None
 
 
 # ---------------------------------------------------------------------------
@@ -7058,6 +7066,7 @@ class MainWindow(QMainWindow):
         bundle.selected = self._selected
         bundle.altitude_arrows_north = self._altitude_arrows_north
         bundle.altitude_arrows_south = self._altitude_arrows_south
+        bundle.records_raw = self._records_raw
 
     def _restore_mode_scene(self, bundle: _ModeScene) -> None:
         """Make ``bundle`` the live scene — an O(1) swap, no teardown.
@@ -7085,6 +7094,14 @@ class MainWindow(QMainWindow):
         self._selected = bundle.selected
         self._altitude_arrows_north = bundle.altitude_arrows_north
         self._altitude_arrows_south = bundle.altitude_arrows_south
+        # Restore the mode's waypoint *data* alongside its scene graphics.
+        # Rebuild the table model, the lookup list (``_waypoints_export``) and
+        # the in-memory SQLite from the bundle so plotting/search use this
+        # mode's points, not the ones the outgoing mode's load left behind.
+        self._records_raw = bundle.records_raw
+        if bundle.records_raw is not None:
+            records_to_sqlite(bundle.records_raw, self._db)
+            self._set_waypoint_rows(bundle.records_raw)
 
     def _activate_fresh_mode_scene(self, mode_id: str) -> None:
         """Swap in a brand-new empty scene for ``mode_id`` and null the live

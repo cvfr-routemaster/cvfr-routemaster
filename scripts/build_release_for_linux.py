@@ -141,17 +141,14 @@ SPEC_STEM = "cvfr-routemaster-linux"
 # don't care about).
 APP_PACKAGE = "cvfr_routemaster"
 
-# The three CVFR PDFs your dev project root holds today. NOT shipped
-# in the release any more (v3.3+: Israeli government terms of use
-# prohibit redistribution); kept as a prereq check so the dev's
-# calibration is known to be valid against existing PDFs. The
-# runtime fetches from CAAI URLs — see
-# ``cvfr_routemaster.chart_source.CAAI_CHART_URLS``.
-CHART_PDFS: tuple[str, ...] = (
-    "CVFR-NORTH-OCT-2025-UPD2.pdf",
-    "CVFR-SOUTH-OCT-2025-UPD2.pdf",
-    "CVFR-BACK-PAGES-OCT-2025-UPD2.pdf",
-)
+# The chart PDFs are NOT shipped in the release (v3.3+: Israeli
+# government terms of use prohibit redistribution). Checked at
+# build-prereq time (see ``_check_prerequisites``) from the per-mode
+# runtime cache the app downloads into
+# ``.cvfr_routemaster/<mode_id>/charts/`` rather than fixed dev PDFs at
+# the repo root, so a fresh checkout calibrated via the normal download
+# flow still builds and the check covers every registered mode. The
+# runtime fetches from the CAAI URLs in the map-mode registry.
 
 # Files inside ``.cvfr_routemaster/`` that are worth seeding into the
 # release. Same set as the Windows build — see the equivalent constant
@@ -359,12 +356,29 @@ def _check_prerequisites() -> None:
         sys.exit(1)
 
     missing: list[str] = []
-    for pdf in CHART_PDFS:
-        if not (REPO_ROOT / pdf).is_file():
-            missing.append(f"  - chart PDF: {pdf}")
-    # v4: require a warm calibration for every registered chart
-    # product so a fresh install opens geo-referenced in any mode.
-    for mode_id in _seed_mode_ids():
+    # Lazy import (same rationale as ``_seed_mode_ids``): keep the
+    # package off the module-scope import path.
+    sys.path.insert(0, str(REPO_ROOT))
+    try:
+        from cvfr_routemaster import map_modes
+        from cvfr_routemaster.chart_source import cache_path_for_sheet
+    finally:
+        sys.path.pop(0)
+    # v4: require the downloaded chart PDFs + a warm calibration for
+    # every registered chart product so a fresh install opens
+    # geo-referenced in any mode. Charts live under
+    # ``.cvfr_routemaster/<mode_id>/charts/`` (downloaded from CAAI;
+    # not shipped — redistribution prohibited).
+    for mode_id in map_modes.mode_ids():
+        mode = map_modes.get_mode(mode_id)
+        for sheet_key in mode.sheet_keys:
+            pdf = cache_path_for_sheet(sheet_key, REPO_ROOT, mode_id)
+            if not pdf.is_file():
+                missing.append(
+                    f"  - .cvfr_routemaster/{mode_id}/charts/{pdf.name} "
+                    f"(open the app in {mode_id.upper()} mode so it "
+                    "downloads the sheet from CAAI)"
+                )
         cal = DEV_CACHE_DIR / mode_id / "geo_calibration.json"
         if not cal.is_file():
             missing.append(

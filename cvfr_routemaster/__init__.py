@@ -39,7 +39,7 @@ here, the window title at runtime, and the Copyright Information
 dialog must all read the same string before the release goes out.
 """
 
-__version__ = "4.0.0"
+__version__ = "4.1.0"
 
 APP_NAME = "CVFR Route Master"
 
