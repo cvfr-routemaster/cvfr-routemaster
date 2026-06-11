@@ -176,22 +176,18 @@ SOURCE_ZIP_NAME = "cvfr-routemaster-source.zip"
 # ``_bundle_source_zip``).
 SOURCE_BUNDLE_TOP_FILES: tuple[str, ...] = ("requirements.txt", "LICENSE")
 
-# The three CVFR PDFs your dev project root holds today. These are
-# NOT shipped in the release (v3.3+: Israeli government terms of use
-# prohibit redistribution of the CAAI charts). They are still checked
-# at build-prereq time because the dev's calibration was generated
-# against these files — without them, the cache JSONs the build
-# ships are meaningless.
+# The chart PDFs are NOT shipped in the release (v3.3+: Israeli
+# government terms of use prohibit redistribution of the CAAI charts).
+# They're checked at build-prereq time — see ``_check_prerequisites`` —
+# but from the per-mode runtime cache the app downloads into
+# ``.cvfr_routemaster/<mode_id>/charts/`` rather than a fixed set of dev
+# PDFs at the repo root, so a fresh dev checkout that calibrated via the
+# normal download flow (no manually-placed PDFs) still builds, and the
+# check naturally extends to every registered mode (CVFR + LSA).
 #
-# The runtime fetches PDFs from the CAAI URLs in
-# ``cvfr_routemaster.chart_source.CAAI_CHART_URLS``, which we also
-# bake into the shipped ``chart_sources.json`` so a fresh-install
-# user sees the URLs as defaults.
-CHART_PDFS: tuple[str, ...] = (
-    "CVFR-NORTH-OCT-2025-UPD2.pdf",
-    "CVFR-SOUTH-OCT-2025-UPD2.pdf",
-    "CVFR-BACK-PAGES-OCT-2025-UPD2.pdf",
-)
+# The runtime fetches PDFs from the CAAI URLs in the map-mode registry,
+# which we also bake into the shipped ``chart_sources.json`` so a
+# fresh-install user sees the URLs as defaults.
 
 # Files inside ``.cvfr_routemaster/`` that are worth seeding into the
 # release. Calibration is the critical one (without it the friend's
@@ -272,16 +268,37 @@ def _check_prerequisites() -> None:
     a broken bundle."""
     _step("Checking prerequisites")
     missing: list[str] = []
-    for pdf in CHART_PDFS:
-        if not (REPO_ROOT / pdf).is_file():
-            missing.append(f"  - chart PDF: {pdf}")
+    # Lazy import (same rationale as ``_seed_mode_ids``): keep the
+    # package off the module-scope import path.
+    sys.path.insert(0, str(REPO_ROOT))
+    try:
+        from cvfr_routemaster import map_modes
+        from cvfr_routemaster.chart_source import cache_path_for_sheet
+    finally:
+        sys.path.pop(0)
     # v4: each shipped chart product owns a per-mode cache namespace
-    # under ``.cvfr_routemaster/<mode_id>/``. Require a warm
-    # calibration for *every* registered mode so a fresh install
-    # lands the recipient on geo-referenced charts in whichever mode
-    # they open first (CVFR by default, LSA on switch) without the
-    # "please re-calibrate" dialog.
-    for mode_id in _seed_mode_ids():
+    # under ``.cvfr_routemaster/<mode_id>/``. For every registered mode
+    # require (a) the downloaded chart PDFs the dev calibrated against
+    # and (b) a warm calibration, so a fresh install lands the recipient
+    # on geo-referenced charts in whichever mode they open first (CVFR by
+    # default, LSA on switch) without the "please re-calibrate" dialog.
+    #
+    # The chart PDFs live under ``.cvfr_routemaster/<mode_id>/charts/``
+    # (downloaded by the app from CAAI; NOT shipped — redistribution
+    # prohibited). Gated here because the shipped cache/calibration JSONs
+    # are only meaningful against the exact bytes the dev calibrated
+    # against; the runtime ``size`` fingerprint re-checks this against
+    # the recipient's own download.
+    for mode_id in map_modes.mode_ids():
+        mode = map_modes.get_mode(mode_id)
+        for sheet_key in mode.sheet_keys:
+            pdf = cache_path_for_sheet(sheet_key, REPO_ROOT, mode_id)
+            if not pdf.is_file():
+                missing.append(
+                    f"  - .cvfr_routemaster/{mode_id}/charts/{pdf.name} "
+                    f"(open the app in {mode_id.upper()} mode so it "
+                    "downloads the sheet from CAAI)"
+                )
         cal = DEV_CACHE_DIR / mode_id / "geo_calibration.json"
         if not cal.is_file():
             missing.append(

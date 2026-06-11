@@ -174,18 +174,22 @@ def test_check_prerequisites_passes_on_linux_with_required_files(
     accidentally locked out a valid environment."""
     from scripts import build_release_for_linux
     from cvfr_routemaster import map_modes
+    from cvfr_routemaster.chart_source import cache_path_for_sheet
 
     fake_repo = tmp_path / "repo"
     fake_repo.mkdir()
     dev_cache = fake_repo / ".cvfr_routemaster"
     dev_cache.mkdir()
-    # v4 requires a per-mode calibration for every registered mode.
+    # v4 requires, per registered mode, a calibration plus the
+    # downloaded chart PDFs under ``.cvfr_routemaster/<mode>/charts/``.
     for mode_id in map_modes.mode_ids():
         mode_dir = dev_cache / mode_id
         mode_dir.mkdir()
         (mode_dir / "geo_calibration.json").write_text("{}")
-    for pdf in build_release_for_linux.CHART_PDFS:
-        (fake_repo / pdf).write_bytes(b"%PDF-1.4 stub\n")
+        for sheet_key in map_modes.get_mode(mode_id).sheet_keys:
+            pdf = cache_path_for_sheet(sheet_key, fake_repo, mode_id)
+            pdf.parent.mkdir(parents=True, exist_ok=True)
+            pdf.write_bytes(b"%PDF-1.4 stub\n")
 
     monkeypatch.setattr(sys, "platform", "linux")
     monkeypatch.setattr(build_release_for_linux, "REPO_ROOT", fake_repo)

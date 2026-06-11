@@ -99,13 +99,13 @@ def test_display_version_trims_trailing_zero_segments(
     assert pkg.display_version() == expected
 
 
-def test_display_version_for_current_version_is_four_oh() -> None:
-    """Concrete sanity check on the actual shipped version. v4.0
+def test_display_version_for_current_version_is_four_one() -> None:
+    """Concrete sanity check on the actual shipped version. v4.1
     is what the build cookbook says we're shipping; if a future
-    bump moves to v4.1, update this test, the cookbook entry, and
-    the Copyright Information dialog together."""
-    assert __version__ == "4.0.0"
-    assert display_version() == "4.0"
+    bump moves the version again, update this test, the cookbook
+    entry, and the Copyright Information dialog together."""
+    assert __version__ == "4.1.0"
+    assert display_version() == "4.1"
 
 
 # ---------------------------------------------------------------------------
@@ -117,7 +117,7 @@ def test_app_title_without_prefix_uses_brand_then_version_suffix() -> None:
     """The bare-window title format is ``<APP_NAME> (v<version>)``
     with the version suffix non-optional — this is what the build
     cookbook step 0 validates against on every release."""
-    assert app_title() == "CVFR Route Master (v4.0)"
+    assert app_title() == "CVFR Route Master (v4.1)"
 
 
 def test_app_title_with_prefix_uses_em_dash_separator() -> None:
@@ -126,8 +126,8 @@ def test_app_title_with_prefix_uses_em_dash_separator() -> None:
     a code-review LGTM that swaps it for a hyphen or colon doesn't
     silently land a UX regression — window-manager taskbar
     grouping rules and screenshots both key on the exact pattern."""
-    assert app_title("Loading") == "Loading \u2014 CVFR Route Master (v4.0)"
-    assert app_title("Waypoints") == "Waypoints \u2014 CVFR Route Master (v4.0)"
+    assert app_title("Loading") == "Loading \u2014 CVFR Route Master (v4.1)"
+    assert app_title("Waypoints") == "Waypoints \u2014 CVFR Route Master (v4.1)"
 
 
 def test_app_title_empty_string_prefix_is_treated_as_no_prefix() -> None:
