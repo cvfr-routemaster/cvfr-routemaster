@@ -71,8 +71,8 @@ altitude and speed (the colour indicates the wake category).
    מורדת ראשונה, אחריה 13, אחריה 14 ולבסוף 15. כל רמה זמינה לתצוגת הלוויין
    מיד כשהורדתה מסתיימת, כך שהתמונות מופיעות די מהר, והרזולוציה הזמינה
    משתפרת ככל שההורדה מתקדמת. ניתן להעתיק את מטמון אריחי הלוויין הקיים
-   מגרסה קודמת של התוכנה: פשוט מעתיקים את `.cvfr_routemaster/satellite_tiles`
-   לתיקייה `./cvfr_routemaster` של הגרסה החדשה. כך חוסכים את זמן ההורדה בין
+   מגרסה קודמת של התוכנה: פשוט מעתיקים את <code dir="ltr">.cvfr_routemaster/satellite_tiles</code>
+   לתיקייה <code dir="ltr">./cvfr_routemaster</code> של הגרסה החדשה. כך חוסכים את זמן ההורדה בין
    גרסאות.
 5. מותר לסגור את התוכנה בזמן שהורדה מתבצעת — היא תמשיך בהפעלה הבאה.
 6. בפינה הימנית התחתונה של החלון מוצגת התקדמות ההורדה לכל רמת זום. קצב
@@ -123,7 +123,7 @@ altitude and speed (the colour indicates the wake category).
    first, then 13, then 14, and finally 15. Each level becomes available to
    the satellite view as soon as it finishes, so imagery appears fairly
    quickly and the available resolution improves as the download
-   progresses. It is possible to copy the existing sattelite tile cache from a previous version of the program, simply copy .cvfr_routemaster/satellite_tiles to the ./cvfr_routemaster folder of your new version. This will save you the download time between versions.
+   progresses. It is possible to copy the existing satellite tile cache from a previous version of the program, simply copy .cvfr_routemaster/satellite_tiles to the ./cvfr_routemaster folder of your new version. This will save you the download time between versions.
 5. It is fine to close the program while a download is in progress — it
    will resume on the next launch.
 6. The bottom-right of the window shows download progress for each zoom
@@ -196,11 +196,11 @@ completely free and will always remain so.
 
 בשלב הנוכחי של פיתוח התוכנה יש שתי הסתייגויות להרצה מקוד המקור:
 
-1. צריך לקחת את התיקייה `.cvfr_routemaster` מקובץ ה-ZIP של גרסת ה-Windows
+1. צריך לקחת את התיקייה <code dir="ltr">.cvfr_routemaster</code> מקובץ ה-ZIP של גרסת ה-Windows
    כדי לקבל את נתוני כיול המפות — או לכייל את המפות בעצמכם. לשם כך פותחים
    את תפריט הגדרות המפה, טוענים את קובצי המפה (או מפנים לכתובות האמיתיות
    באתר רת"א), ואז מבצעים את כיול המפה (פשוט עוקבים אחרי ההוראות שעל
-   המסך). אם בוחרים בדרך הראשונה, התיקייה `.cvfr_routemaster` צריכה להיות
+   המסך). אם בוחרים בדרך הראשונה, התיקייה <code dir="ltr">.cvfr_routemaster</code> צריכה להיות
    ממוקמת ליד תיקיית המודול `cvfr_routemaster` כדי שהתוכנה תמצא את התוכן
    שלה. אני ממליץ פשוט לקחת את התיקייה מקובץ ה-ZIP של גרסת ה-Windows
    ולחסוך זמן.
