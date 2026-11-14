@@ -918,6 +918,97 @@ Per `.cursor/rules/build-releases.mdc`:
 
 ---
 
+# Parked feature requests
+
+## Per-mode window geometry for Vertical Mode (parked 2026-11-13)
+
+**Today.** Vertical Mode (Program Settings → "Vertical Mode")
+keeps independent *pane* sizes per layout: the landscape splitter
+in `window_splitter_state`, the portrait splitters in
+`vertical_main_splitter_state` / `vertical_bottom_splitter_state`.
+The *window* geometry (position, size, maximised flag, screen) is a
+single `window_geometry` blob shared by both modes and saved only in
+`closeEvent`. Toggling the mode re-arranges panes but never moves or
+resizes the window, so switching from portrait to landscape leaves
+the window on the portrait monitor until the user drags it.
+
+**Feature.** Remember one window geometry per mode and restore it on
+toggle, so flipping Vertical Mode on jumps the window to the portrait
+monitor at its last vertical size, and flipping it off returns it to
+the landscape monitor.
+
+**Sketch.**
+
+- Add `window_geometry_vertical` alongside `window_geometry` in
+  `settings_store.py`; `closeEvent` writes the active mode's key.
+- In `MainWindow._on_vertical_mode_toggled`, `saveGeometry()` into
+  the outgoing mode's slot before switching, then `restoreGeometry()`
+  the incoming mode's slot (if saved) after
+  `_apply_layout_orientation`.
+- Run `_ensure_window_on_screen` after the restore so a geometry for
+  an unplugged monitor is clamped back on-screen.
+- Watch out for maximised windows: restore the normal geometry first,
+  then re-apply the maximised state, or Qt may maximise on the wrong
+  screen.
+
+**Why parked.** The user rarely switches modes; one shared geometry
+is good enough for a sim rig that stays in one mode.
+
+## Hebrew localization of the whole interface (requested 2026-11-14)
+
+**Request.** A Hebrew version of the README was requested by users
+(done 2026-11-14: `README.md` now alternates Hebrew and English per
+section, Hebrew first, Hebrew blocks wrapped in `<div dir="rtl">`).
+The follow-up is a full Hebrew UI: every toolbar button, dialog,
+tooltip, usage hint, status-bar message and error box.
+
+**Today.** All user-visible strings are English literals in the
+widget code (`main_window.py`, `route_panel.py`, the `*_dialog.py`
+modules, `satellite_dialog.py`, …). Hebrew already renders correctly
+where it appears in data (waypoint names, the Map Type buttons
+`CVFR - כטר"מ` / `LSA - אז"מ`), so fonts and shaping are a
+known-good baseline.
+
+**Sketch.**
+
+- Wrap user-visible strings in `self.tr(...)` /
+  `QCoreApplication.translate(context, ...)`; extract with
+  `pyside6-lupdate` into `cvfr_routemaster/i18n/cvfr_routemaster_he.ts`,
+  translate, compile with `pyside6-lrelease` to `.qm`.
+- Install a `QTranslator` in `__main__.py` before `MainWindow` is
+  built. Language choice: a Display Settings combo (English / עברית),
+  persisted in `settings_store`, defaulting to English; applied on
+  restart (simplest) rather than live re-translation.
+- RTL must be per-widget, not global: toolbar, dialogs and hint
+  labels go right-to-left, but the chart view, the route table and
+  anything showing lat/lon, bearings, frequencies, ICAO codes or the
+  ICAO Field 15 route string stays left-to-right.
+- Use the same terminology as the Hebrew README (כטר"מ, אז"מ, רת"א,
+  נקודת דיווח, מערבולת שובל, …) so docs and UI agree.
+- Ship the `.qm` file(s) in `datas` of BOTH `cvfr-routemaster.spec`
+  and `cvfr-routemaster-linux.spec`.
+
+**Open questions.**
+
+1. Translate the Legal and Copyright dialog too, or keep the AGPL
+   text and disclaimer authoritative in English (with a Hebrew
+   summary)? Proposal: English text authoritative, Hebrew summary.
+2. Should the language follow `QLocale.system()` on first launch, or
+   always start in English? Proposal: English unless the user picks
+   Hebrew.
+
+**Test impact.** Many tests pin English button labels and hint text
+(`tests/test_ui_layout.py`, `tests/test_main_window_toolbar.py`, …).
+Run the suite with no translator installed (English) and add a
+separate smoke test that loads the Hebrew `.qm` and checks that no
+toolbar or dialog string is left untranslated.
+
+**Effort.** Medium: mostly mechanical wrapping plus translating a
+few hundred strings, with the per-widget RTL pass being the part
+that needs care.
+
+---
+
 # Cleanup tech-debt — picked up 2026-05-27 (defer to next session)
 
 Captured during the pre-git cleanup pass on 2026-05-27. The
@@ -1050,7 +1141,16 @@ not test_hide_usage_hints_survives_airplane_mode_round_trip"`
 filter is no longer required and has been removed from the
 build-releases cookbook.
 
-## 3. Stale module-docstring sweep (medium priority — polish)
+## 3. Stale module-docstring sweep — DONE 2026-11-13
+
+All `ROADMAP-NEXT.md` / `vN feature` / project-"Phase N" pointers in
+`cvfr_routemaster/` were replaced with module cross-references. The
+remaining "Phase N" comments in `altitude_arrows.py` and
+`MainWindow._stop_workers_for_shutdown` are algorithm steps, not
+project phases, and were kept. Also corrected docstrings that still
+described the never-shipped per-pixel satellite warp renderer
+(`satellite_tiles.py`) and the removed accept/decline download prompt
+(`satellite_fetch.DownloadState`). Original notes below.
 
 Currently the codebase has narrative pointers like
 `(v2 feature — see ROADMAP-NEXT.md)` and `(Phase 3 — see
@@ -1076,6 +1176,11 @@ now everything is shipped and the labels are noise.
 
 ## 4. Unused imports + dead public helpers (low priority — polish)
 
+**Unused imports: DONE 2026-11-13.** `ruff check --select F401`
+found 3 in `cvfr_routemaster/main_window.py` and 3 in `scripts/`
+(fewer than the ~13 estimated below); all removed. **Dead public
+helpers are still open.**
+
 The pre-cleanup audit identified roughly:
 
 - ~13 unused imports across the production modules (Ruff would
@@ -1092,7 +1197,12 @@ reach, and we can audit while the build refactor is fresh.
 zero remaining callers in tracked code (scratch/ doesn't count;
 it's gitignored).
 
-## 5. Long-form ROADMAP.md trimming (low priority — polish)
+## 5. Long-form ROADMAP.md trimming — DONE 2026-11-13
+
+Trimmed from ~2830 to ~290 lines: the "Resolved" chronicle is now a
+grouped summary pointing at `git show f1770f6:ROADMAP.md` for the
+full narratives; stale "P0 — Next session" items folded in; open
+issues and later ideas kept verbatim. Original notes below.
 
 `ROADMAP.md` is ~2800 lines and accreted history-as-narrative.
 After git-init lands, the resolved sections become git log

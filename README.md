@@ -1,17 +1,43 @@
 # CVFR Route Master
 
+<div dir="rtl" lang="he">
+
+עוזר לתכנון מסלולי כטר"מ בישראל, לשימוש בסימולטורי טיסה.
+
+CVFR Route Master עוזר לטייסי VATSIM לתכנן וללמוד מסלולים לטיסות כטר"מ
+בישראל, הן במסלולי GA-CVFR (שייקראו בהמשך המסמך פשוט כטר"מ) והן במסלולי
+LSA-CVFR (שייקראו בהמשך המסמך פשוט אז"מ). הכלי משלב את מפת הכטר"מ של רת"א
+עם צילומי לוויין, מחשב מרחקים, זמנים וכיוונים בין נקודות דרך (הן נקודות
+הדיווח הרשמיות והן נקודות ביניים שרירותיות לפי הצורך — למשל בקטעים סביב
+יריחו), וקורא את גובהי המסלול מהחצים המודפסים על המפה. ניתן גם לחפש
+נקודות דרך לפי שם, לפתוח תצוגת לוויין של נקודת דרך באתרי צילום חיצוניים
+(Google, Apple, Bing) ועוד. קיימת גם אפשרות להזין ידנית תדרי בקרה לפני
+ההמראה, לפי מה שזמין ברשת באותו זמן.
+
+הכלי מפיק מסלול לתוכנית טיסה בפורמט שקל להעתיק לתוכנית טיסה ב-VATSIM,
+וניתן לשמור מסלולים לדיסק ולטעון אותם. המסלול ונקודות הדיווח מוצגים הן
+על המפה והן על צילומי הלוויין, כך שקל ללמוד את ציוני הדרך החזותיים לאורך
+המסלול. הכלי יכול גם להציג תנועה מ-VATSIM, אבל הוא **אינו GPS** — הדיוק
+וקצב העדכון שלו זהים לאלה של VATSIM Radar (כל 15 שניות — זו המגבלה
+ש-VATSIM מתירה לגישה לשרתים שלה, והכלי מכבד אותה). כשאפשרות התנועה
+מופעלת, לכל כלי טיס במרחב האווירי הווירטואלי של ישראל מוצגים: אות קריאה,
+סוג כלי הטיס, גובה ומהירות (הצבע מציין את קטגוריית מערבולת השובל).
+
+</div>
+
 An Israel CVFR route-planning assistant for flight-simulator use.
 
 CVFR Route Master helps VATSIM pilots plan and study the route for CVFR
-flights in Israel, for both GA-CVFR (called just CVFR in the rest of this document) and LSA-CVFR (called just LSA in the rest of this document) routes. It combines the CAAI's CVFR chart with satellite imagery,
-computes distances, times and bearings between waypoints (both the official
-reporting points and arbitrary intermediate points if needed — for example
-across segments around Jericho), and reads route altitudes from the arrows
-printed on the chart. You can also search for waypoints by name, open a
-satellite view of a waypoint on third-party imagery sites (Google, Apple,
-Bing) and more. There is also an option to manually enter control
-frequencies before takeoff based on what is available on the network at the
-time.
+flights in Israel, for both GA-CVFR (called just CVFR in the rest of this document)
+and LSA-CVFR (called just LSA in the rest of this document) routes.
+It combines the CAAI's CVFR chart with satellite imagery, computes distances,
+times and bearings between waypoints (both the official reporting points and
+arbitrary intermediate points if needed — for example across segments around
+Jericho), and reads route altitudes from the arrows printed on the chart.
+You can also search for waypoints by name, open a satellite view of a waypoint
+on third-party imagery sites (Google, Apple, Bing) and more. There is also an
+option to manually enter control frequencies before takeoff based on what is
+available on the network at the time.
 
 The tool produces a flight-plan route in a format that is easy to copy into
 a VATSIM flight plan, and routes can be saved and loaded from disk. The
@@ -23,6 +49,63 @@ seconds — this is the limit VATSIM allows for access to their servers, and
 the tool honours it). When the traffic option is enabled, for every
 aircraft over Israel's virtual airspace it shows: callsign, aircraft type,
 altitude and speed (the colour indicates the wake category).
+
+<div dir="rtl" lang="he">
+
+## שימוש בסיסי
+
+1. **אין צורך בהתקנה** — פשוט מחלצים את קובץ ה-ZIP לכל מקום שרוצים ומריצים
+   את קובץ ההפעלה. הגרסה הנוכחית בנויה ל-Windows בלבד, אבל ניתן להריץ את
+   התוכנה גם מקוד המקור ב-Linux — ראו את הסעיף האחרון במסמך זה.
+2. בגלל זכויות יוצרים, הכלי אינו מגיע עם המפה או עם צילומי הלוויין — אבל
+   הוא יוריד אותם לשימושכם האישי, בכפוף לתנאי השימוש של כל ספק.
+3. בהפעלה הראשונה הכלי מוריד את מפות הכטר"מ מרת"א, ממיר אותן מ-PDF לתמונות
+   וטוען אותן למסך הראשי. בשימוש הראשון במפות הכטר"מ או האז"מ התהליך עשוי
+   להימשך זמן מה, אך ההפעלות הבאות מהירות. התהליך זהה למפות הכטר"מ
+   והאז"מ: מפות הכטר"מ נטענות כברירת מחדל בהפעלה הראשונה, והתהליך חוזר על
+   עצמו בפעם הראשונה שעוברים לאז"מ. נא להתאזר בסבלנות — זה עשוי להימשך
+   כמה דקות, כי עיבוד תמונות המפה הענקיות מה-PDF לוקח זמן, גם במעבד חזק.
+4. לאחר מכן הכלי מתחיל להוריד צילומי לוויין — כ-2 GB בסך הכול, בארבע רמות
+   זום שונות (z=12 עד z=15), שבהן הכלי משתמש באופן דינמי לפי מידת הזום
+   (תצוגות קרובות יותר מוגשות מאריחים ברזולוציה גבוהה יותר). רמת זום 12
+   מורדת ראשונה, אחריה 13, אחריה 14 ולבסוף 15. כל רמה זמינה לתצוגת הלוויין
+   מיד כשהורדתה מסתיימת, כך שהתמונות מופיעות די מהר, והרזולוציה הזמינה
+   משתפרת ככל שההורדה מתקדמת. ניתן להעתיק את מטמון אריחי הלוויין הקיים
+   מגרסה קודמת של התוכנה: פשוט מעתיקים את `.cvfr_routemaster/satellite_tiles`
+   לתיקייה `./cvfr_routemaster` של הגרסה החדשה. כך חוסכים את זמן ההורדה בין
+   גרסאות.
+5. מותר לסגור את התוכנה בזמן שהורדה מתבצעת — היא תמשיך בהפעלה הבאה.
+6. בפינה הימנית התחתונה של החלון מוצגת התקדמות ההורדה לכל רמת זום. קצב
+   ההורדה צנוע בכוונה, כי גם לספק צילומי הלוויין יש תנאי שימוש, והכלי
+   מכבד אותם.
+7. ניתן להשתמש בכלי במצב מפה בזמן שההורדה מתבצעת.
+8. **לתכנון מסלול:** `SHIFT + LEFT CLICK` על נקודות במפה (למשל קודם LLHZ
+   הרצליה, אחר כך BAZRA, וכן הלאה).
+9. **להסרת נקודה מהמסלול:** `SHIFT + RIGHT CLICK` על נקודה במסלול. יש גם
+   כפתור לניקוי המסלול כולו ולהתחלה מחדש.
+10. בכמה מקומות בודדים הכיוון המגנטי של קטע יסטה במעלה אחת ממה שמודפס על
+    המפה. הסיבה היא שהעיגול במפת רת"א אינו תמיד עקבי, והכלי מחשב כיוונים
+    מהקואורדינטות בפועל של הנקודות.
+    - סטייה של מעלה אחת אינה משמעותית ב-VATSIM באורכי הקטעים שבישראל.
+11. הכפתורים בראש החלון מחולקים לחמש קבוצות:
+    1. **הגדרות התוכנה** `[PROGRAM SETTINGS]` — בדרך כלל אין צורך לגעת
+       בהן, מלבד **מצב אנכי** `[VERTICAL MODE]`, שמסדר את החלון מחדש למסך
+       לאורך (המפה למעלה, וטבלאות המסלול ונקודות הדרך זו לצד זו מתחתיה).
+    2. **סוג המפה** `[MAP TYPE]` — מעבר בין מפות הכטר"מ לאז"מ. לכל סוג מפה
+       יש מקורות, כיול, נקודות דרך ומסלול משלו.
+    3. **מה מוצג על המסך** `[VIEW TOGGLES]`:
+       - **מצב טיסה** `[AIRPLANE MODE]` — מצב של תוכנית טיסה בלבד (בלי
+         מפה).
+       - **הסתרת רשימת נקודות הדרך** `[HIDE WAYPOINT VIEW]` — כדי לפנות
+         מקום על המסך.
+       - **הסתרת טקסט העזרה שעל המסך** `[HIDE USAGE HINTS]`.
+       - **הצגת תנועה חיה מ-VATSIM** `[SHOW VATSIM TRAFFIC]` — עדכון כל 15
+         שניות.
+    4. **מצב לוויין** `[SATELLITE VIEW]` — מחליף את המפה בצילומי לוויין של
+       ישראל.
+    5. **מידע על זכויות יוצרים ורישוי** `[LEGAL AND COPYRIGHT INFO]`.
+
+</div>
 
 ## Basic usage
 
@@ -59,10 +142,15 @@ altitude and speed (the colour indicates the wake category).
     points.
     - A one-degree deviation is not a meaningful issue for VATSIM at the
       segment lengths involved in Israel.
-11. The buttons across the top of the window are split into four groups:
+11. The buttons across the top of the window are split into five groups:
     1. **Program settings** `[PROGRAM SETTINGS]` — you generally will not
-       need to touch these.
-    2. **What you see on screen** `[VIEW TOGGLES]`:
+       need to touch these, except **Vertical Mode** `[VERTICAL MODE]`,
+       which rearranges the window for a portrait monitor (map on top,
+       route and waypoint tables side by side below it).
+    2. **Map type** `[MAP TYPE]` — switches between the CVFR and LSA
+       charts. Each map type keeps its own sources, calibration,
+       waypoints and route.
+    3. **What you see on screen** `[VIEW TOGGLES]`:
        - **Airplane mode** `[AIRPLANE MODE]` — flight-plan-only mode (no
          chart).
        - **Hide the waypoint list** `[HIDE WAYPOINT VIEW]` — to free up
@@ -70,9 +158,22 @@ altitude and speed (the colour indicates the wake category).
        - **Hide the on-screen help text** `[HIDE USAGE HINTS]`.
        - **Show live VATSIM traffic** `[SHOW VATSIM TRAFFIC]` — 15-second
          update interval.
-    3. **Satellite mode** `[SATELLITE VIEW]` — swaps the chart for
+    4. **Satellite mode** `[SATELLITE VIEW]` — swaps the chart for
        satellite imagery of Israel.
-    4. **Copyright and licensing information** `[LEGAL AND COPYRIGHT INFO]`.
+    5. **Copyright and licensing information** `[LEGAL AND COPYRIGHT INFO]`.
+
+<div dir="rtl" lang="he">
+
+## מגבלות שימוש וזכויות יוצרים
+
+***תוכנה זו אינה מיועדת לשימוש בתעופה אמיתית.***
+
+התוכנה משוחררת תחת רישיון GNU AGPL. כל אחד רשאי להפיץ אותה מחדש, לשנות
+אותה ולהפיץ את השינויים שלו וכו', בתנאי שההפצה עומדת בתנאי ה-AGPL. קוד
+המקור מופץ יחד עם התוכנה, והוא כתוב ב-Python. התוכנה חינמית לחלוטין
+ותישאר כזו תמיד.
+
+</div>
 
 ## Usage limitations and copyright
 
@@ -83,6 +184,47 @@ redistribute it, modify it, and redistribute their modifications, etc.,
 provided the distribution complies with the AGPL terms. The source code is
 distributed alongside the program and is written in Python. The program is
 completely free and will always remain so.
+
+<div dir="rtl" lang="he">
+
+## הרצה מקוד המקור וב-Linux
+
+התוכנה כתובה ב-Python, ולכן היא עובדת היטב גם מקוד המקור (התיקייה
+`cvfr_routemaster` היא מודול Python עצמאי), כולל ב-Linux.
+
+לשם כך, קודם משכפלים (clone) את המאגר.
+
+בשלב הנוכחי של פיתוח התוכנה יש שתי הסתייגויות להרצה מקוד המקור:
+
+1. צריך לקחת את התיקייה `.cvfr_routemaster` מקובץ ה-ZIP של גרסת ה-Windows
+   כדי לקבל את נתוני כיול המפות — או לכייל את המפות בעצמכם. לשם כך פותחים
+   את תפריט הגדרות המפה, טוענים את קובצי המפה (או מפנים לכתובות האמיתיות
+   באתר רת"א), ואז מבצעים את כיול המפה (פשוט עוקבים אחרי ההוראות שעל
+   המסך). אם בוחרים בדרך הראשונה, התיקייה `.cvfr_routemaster` צריכה להיות
+   ממוקמת ליד תיקיית המודול `cvfr_routemaster` כדי שהתוכנה תמצא את התוכן
+   שלה. אני ממליץ פשוט לקחת את התיקייה מקובץ ה-ZIP של גרסת ה-Windows
+   ולחסוך זמן.
+2. צריך ש-tesseract יהיה מותקן כדי לבצע OCR (זיהוי תווים). ב-Debian
+   (וב-Ubuntu, Mint וכו') מתקינים אותו כך:
+   `sudo apt install tesseract-ocr tesseract-ocr-eng tesseract-ocr-heb`.
+   אם אתם בהפצה אחרת, סביר שאתם יודעים מהן פקודות התקנת החבילות. ב-Windows
+   צריך את קובצי ההפעלה של tesseract. קובץ ה-ZIP של הגרסה כולל תיקייה
+   בשם `tesseract` — מעתיקים אותה ליד `cvfr_routemaster`, וזהו.
+
+ודאו שכל מה שמופיע ב-`requirements.txt` מותקן בסביבה (env או venv) שלכם,
+ואז:
+
+</div>
+
+```
+py -m cvfr_routemaster
+```
+
+<div dir="rtl" lang="he">
+
+תהנו!
+
+</div>
 
 ## Running from source and on Linux
 

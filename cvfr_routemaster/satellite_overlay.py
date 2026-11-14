@@ -1281,8 +1281,7 @@ class SatelliteOverlay:
 
     def missing_coords(self) -> list[TileCoord]:
         """Return the list of tile coords that have an item but no
-        real pixmap. Used by the on-demand fetch worker (Phase 7e)
-        to know which tiles to enqueue and by tests as a quick
+        real pixmap. Used by the on-demand fetch worker to know which tiles to enqueue and by tests as a quick
         completeness check."""
         return [c for c in self._items if c not in self._loaded_lru]
 

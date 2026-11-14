@@ -48,17 +48,18 @@ Three layers, top-down:
 
 3. :class:`DownloadState` + :func:`read_download_state` /
    :func:`write_download_state` — persistent JSON next to the
-   cache that records what bbox/zoom/decision the last bulk fetch
-   was working on. Read on app start to drive the
-   resume-vs-restart-vs-prompt decision tree (Phase 5). Written
-   atomically; safe to interrupt at any point.
+   cache that records what bbox/zoom/status the last bulk fetch
+   was working on. Read on app start to decide whether to silently
+   resume the download. Written atomically; safe to interrupt at
+   any point.
 
 Plus :func:`tiles_to_fetch_for_bbox` — the bulk-fetch enumerator
 that lists every tile in a bbox at a zoom and subtracts the ones
 already on disk.
 
 All HTTP error paths are mapped onto :class:`FetchOutcome`
-explicitly. The worker layer (Phase 4) decides retry policy:
+explicitly. The worker layer (:mod:`cvfr_routemaster.satellite_worker`)
+decides retry policy:
 ``rate_limited`` and ``network_error`` are transient (retry with
 backoff), ``missing`` is permanent (skip this tile, paint gray
 in the renderer's footprint), ``http_error`` is generally
@@ -424,9 +425,8 @@ def tiles_to_fetch_for_bbox(
     """Enumerate every tile in the bbox at zoom ``z`` that is not
     already cached.
 
-    Used by the Phase 5 dialog to compute the size estimate
-    ("we'd download N more tiles totalling ~M MB") and by the
-    Phase 4 worker to drive the bulk fetch loop.
+    Used by :mod:`cvfr_routemaster.satellite_worker` to drive the
+    bulk fetch loop.
 
     The returned list preserves :func:`bbox_to_tiles`' row-major
     ordering (north-to-south outer, west-to-east inner) minus the
@@ -572,9 +572,8 @@ def count_cached_tiles_in_bbox(
 
 #: Schema version of the JSON we serialise. Bump on any breaking
 #: structural change. ``read_download_state`` returns ``None`` for
-#: any unrecognised version, which gracefully causes a fresh
-#: prompt (worse case: a paid-for partial download is forgotten
-#: and the user sees the first-launch prompt again).
+#: any unrecognised version, which simply resumes the download
+#: (already-cached tiles are skipped, so nothing is re-fetched).
 DOWNLOAD_STATE_VERSION: int = 1
 
 
@@ -583,19 +582,9 @@ class DownloadState:
     """Persistent record of an in-progress (or completed) bulk
     fetch.
 
-    Read on app start to drive the dialog state machine in Phase 5:
-
-    * ``user_decision == "accepted"`` AND
-      ``completed_tiles < total_tiles`` → resume-or-restart
-      prompt.
-    * ``user_decision == "accepted"`` AND
-      ``completed_tiles == total_tiles`` → silent, cache is
-      ready.
-    * ``user_decision == "declined"`` → silent, respect choice;
-      first satellite-toggle later kicks the prompt with extra
-      "this will be slow" wording.
-    * File absent / unparseable / old version → first-launch
-      prompt.
+    Read on app start: if the file is absent / unparseable / an old
+    version, or :meth:`is_complete` is ``False``, the primary-zoom
+    download is silently resumed; otherwise the cache is ready.
 
     All fields are JSON-friendly primitives; serialisation is a
     plain :func:`json.dumps` of :func:`dataclasses.asdict`.
@@ -614,8 +603,7 @@ class DownloadState:
         bbox: ``(min_lat, max_lat, min_lon, max_lon)`` the fetch
             covers. Stored so a later code-side change to
             :data:`ISRAEL_BBOX` invalidates an earlier-bbox
-            partial — the user gets re-prompted with the new
-            scope's size.
+            partial and the new scope is downloaded.
         total_tiles: Tile count in the bbox at this zoom (i.e.
             ``count_tiles_for_bbox(*bbox, zoom)``).
         completed_tiles: Tiles successfully cached so far. Bounded
@@ -623,18 +611,15 @@ class DownloadState:
             most recent ``write_download_state`` call from the
             worker, which the worker batches every ~50 tiles to
             avoid hammering the disk on every successful fetch.
-        user_decision: ``"accepted"`` (download permitted),
-            ``"declined"`` (skip; ask again later only on toggle),
-            or ``"in_progress"`` (the worker is currently
-            running; same as ``accepted`` for resume-decision
-            purposes but lets the dialog distinguish "you said
-            yes earlier, app closed mid-download" from "you said
-            yes earlier, download already finished").
-        started_at: ISO-8601 timestamp of the user's accept
-            decision (or first-fetch trigger if there's no
-            explicit decision recorded). Cosmetic in the
-            "resumed download started 14 minutes ago" sense; not
-            used in any logic.
+        user_decision: Download status as last written by the
+            worker: ``"downloading"``, ``"paused"`` or
+            ``"complete"`` (``"in_progress"`` is the dataclass
+            default). Informational only; resume logic keys off
+            :meth:`is_complete`. The field name predates the
+            removal of the accept/decline prompt and is kept for
+            on-disk compatibility.
+        started_at: ISO-8601 timestamp of the first fetch for this
+            zoom/bbox. Informational; not used in any logic.
         completed_at: ISO-8601 timestamp of fetch completion, or
             ``None`` while in progress.
     """
@@ -752,9 +737,9 @@ def write_download_state(state: DownloadState, cache: TileCache) -> None:
     Same atomic-rename trick as :meth:`TileCache.put` — write to
     ``<state>.tmp`` then ``os.replace`` — so a kill mid-write
     leaves either the old state intact or the new one fully
-    written, never garbage. The Phase 4 worker calls this after
-    every batch of N tiles (probably N=50; a finer granularity
-    just costs disk I/O for the same crash-resume guarantee).
+    written, never garbage. :mod:`cvfr_routemaster.satellite_worker`
+    calls this periodically during the bulk fetch, on pause and on
+    completion.
 
     Creates the parent dir if needed (the cache directory might
     not exist yet on the very first state write).

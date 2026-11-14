@@ -44,7 +44,6 @@ This is a one-shot diagnostic, not a regression test — kept in
 """
 from __future__ import annotations
 
-import io
 import re
 import sys
 import zipfile

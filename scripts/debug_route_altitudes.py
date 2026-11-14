@@ -46,7 +46,6 @@ from cvfr_routemaster.geo_calibration import (  # noqa: E402
 )
 from cvfr_routemaster.map_crop import CropMeta  # noqa: E402
 from cvfr_routemaster.route import (  # noqa: E402
-    Route,
     RoutePoint,
     RouteSegment,
     great_circle_distance_nm,

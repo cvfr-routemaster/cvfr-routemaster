@@ -48,7 +48,7 @@ covers two related concerns:
 2. **Traffic display** — one knob:
 
    * Plane icon size (pixels nose-to-tail) for the on-chart VATSIM
-     traffic silhouettes (v2 feature — see ``ROADMAP-NEXT.md``).
+     traffic silhouettes (see :mod:`cvfr_routemaster.traffic_overlay`).
 
    This is a single global value rather than per-profile because
    airplane mode hides the chart entirely, so there's no second

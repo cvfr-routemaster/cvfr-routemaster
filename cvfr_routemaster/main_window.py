@@ -91,6 +91,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QProgressDialog,
     QSplitter,
+    QStackedWidget,
     QStatusBar,
     QTableView,
     QToolBar,
@@ -142,7 +143,6 @@ from cvfr_routemaster.chart_source import (
     download_chart_pdf,
     load_manifest,
     needs_download,
-    normalize_url,
     save_manifest,
 )
 from cvfr_routemaster.altitude_arrows import (
@@ -160,7 +160,6 @@ from cvfr_routemaster.route import (
     Route,
     default_save_plan_name,
     find_nearest_waypoint,
-    great_circle_distance_nm,
     parse_icao_route_string,
 )
 from cvfr_routemaster.route_panel import RoutePanel
@@ -176,6 +175,8 @@ from cvfr_routemaster.settings_store import (
     load_autoload_enabled,
     load_current_map_mode,
     load_font_sizes,
+    load_hide_usage_hints,
+    load_hide_waypoint_view,
     load_map_layout,
     load_map_link_provider,
     load_map_view_navigation,
@@ -186,12 +187,16 @@ from cvfr_routemaster.settings_store import (
     load_show_vatsim_traffic,
     load_traffic_icon_size_px,
     load_waypoint_marker_size_px,
+    load_vertical_mode,
+    load_vertical_splitter_states,
     load_waypoint_show_latlon_cols,
     load_window_layout,
     save_airplane_font_sizes,
     save_autoload_enabled,
     save_current_map_mode,
     save_font_sizes,
+    save_hide_usage_hints,
+    save_hide_waypoint_view,
     save_map_layout,
     save_map_link_provider,
     save_map_view_navigation,
@@ -200,6 +205,8 @@ from cvfr_routemaster.settings_store import (
     save_show_satellite,
     save_show_vatsim_traffic,
     save_traffic_icon_size_px,
+    save_vertical_mode,
+    save_vertical_splitter_states,
     save_waypoint_marker_size_px,
     save_waypoint_show_latlon_cols,
     save_window_layout,
@@ -211,7 +218,6 @@ from cvfr_routemaster.satellite_dialog import (
 from cvfr_routemaster.satellite_fetch import (
     count_cached_tiles_in_bbox,
     read_download_state,
-    tiles_to_fetch_for_bbox,
 )
 from cvfr_routemaster.satellite_demand_worker import OnDemandFetchWorker
 from cvfr_routemaster.satellite_overlay import (
@@ -1235,8 +1241,8 @@ class MainWindow(QMainWindow):
         # always visible. Same lazy lifecycle as ``_route_overlay_item``.
         self._route_origin_marker_item: QGraphicsEllipseItem | None = None
 
-        # Live VATSIM traffic overlay (v2 feature; see ROADMAP-NEXT.md and
-        # cvfr_routemaster.traffic_overlay). Always-instantiated manager so
+        # Live VATSIM traffic overlay (see cvfr_routemaster.traffic_overlay
+        # and cvfr_routemaster.vatsim_feed). Always-instantiated manager so
         # call sites can ``set_pilots`` / ``clear`` without nil-checks; the
         # current visibility state is owned by the toolbar toggle. The
         # projection callback flips argument order — TrafficOverlay takes
@@ -1281,8 +1287,8 @@ class MainWindow(QMainWindow):
         # survives.
         self._tracking_callsign: str | None = None
 
-        # --- v3 satellite-imagery state ---------------------------------
-        # See ROADMAP-NEXT.md and cvfr_routemaster.satellite_*. The
+        # --- Satellite-imagery state ------------------------------------
+        # See cvfr_routemaster.satellite_overlay / satellite_fetch. The
         # satellite layer is a per-tile overlay (one
         # ``QGraphicsPixmapItem`` per Web Mercator tile, parented to
         # the chart pixmap and transformed into chart-pixel coords).
@@ -1665,8 +1671,33 @@ class MainWindow(QMainWindow):
         self._pane_stretch: tuple[int, ...] = (3, 7, 3)
         for i, f in enumerate(self._pane_stretch):
             splitter.setStretchFactor(i, f)
-        self.setCentralWidget(splitter)
         self._splitter = splitter
+
+        # Vertical Mode (portrait monitor) layout: map on top, route and
+        # waypoint panes side by side below it. Built empty; the three
+        # panes are moved between the two layouts by
+        # ``_apply_layout_orientation``. Each page of the stack holds its
+        # own splitter tree so the two modes keep independent pane sizes.
+        self._vsplitter = QSplitter(Qt.Orientation.Vertical)
+        self._vsplitter.setObjectName("verticalMainSplitter")
+        self._bottom_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self._bottom_splitter.setObjectName("verticalBottomSplitter")
+        self._vsplitter.addWidget(self._bottom_splitter)
+        self._vertical_stretch: tuple[int, int] = (6, 4)
+        self._bottom_stretch: tuple[int, int] = (1, 1)
+        self._vertical_layout_active: bool = False
+        # Last-known Vertical Mode splitter states (main, bottom); ``None``
+        # until saved once. Applied whenever the vertical layout is entered.
+        self._vertical_splitter_states: tuple[bytes, bytes] | None = (
+            load_vertical_splitter_states()
+        )
+        self._landscape_splitter_state: bytes | None = None
+        self._pending_splitter_fits: list[tuple[QSplitter, tuple[int, ...]]] = []
+
+        self._layout_stack = QStackedWidget()
+        self._layout_stack.addWidget(splitter)
+        self._layout_stack.addWidget(self._vsplitter)
+        self.setCentralWidget(self._layout_stack)
 
         # Restore the previous session's window geometry + splitter sizes
         # *here*, after both the main window's frame and the splitter
@@ -1692,6 +1723,7 @@ class MainWindow(QMainWindow):
                 self._window_layout_restored = True
             if self._splitter.restoreState(splitter_bytes):
                 self._window_layout_restored = True
+                self._landscape_splitter_state = splitter_bytes
 
         self._records_raw: list[WaypointRecord] | None = None
         self._waypoints_export: list[WaypointRecord] = []
@@ -1820,6 +1852,9 @@ class MainWindow(QMainWindow):
 
     def showEvent(self, event) -> None:
         super().showEvent(event)
+        pending, self._pending_splitter_fits = self._pending_splitter_fits, []
+        for splitter, ratio in pending:
+            self._fit_splitter_to_ratio(splitter, ratio)
         if not self._did_place_window:
             self._did_place_window = True
             QTimer.singleShot(0, self._ensure_window_on_screen)
@@ -1944,18 +1979,43 @@ class MainWindow(QMainWindow):
         """
         if getattr(self, "_window_layout_restored", False):
             return
-        w = self._splitter.width()
-        if w <= 0:
-            QTimer.singleShot(0, self._apply_splitter_ratio)
-            return
-        n = self._splitter.count()
+        self._fit_splitter_to_ratio(self._splitter, self._pane_stretch)
+
+    def _fit_splitter_to_ratio(
+        self, splitter: QSplitter, ratio: tuple[int, ...]
+    ) -> None:
+        """Size ``splitter``'s panes proportionally to ``ratio`` along its
+        orientation. Deferred to the next event-loop pass so a splitter
+        whose children were just moved in has been laid out; retried
+        while it still has no extent (before first show). The timer is
+        bound to ``splitter`` so it is dropped if the window goes away."""
+        QTimer.singleShot(0, splitter, lambda: self._fit_splitter_now(splitter, ratio))
+
+    def _fit_splitter_now(self, splitter: QSplitter, ratio: tuple[int, ...]) -> None:
+        n = splitter.count()
         if n <= 0:
             return
-        factors = list(self._pane_stretch[:n])
+        # A not-yet-shown splitter reports a placeholder extent; sizing
+        # against it would leave the panes far off the ratio once the
+        # window appears. Park the request until ``showEvent``.
+        if not splitter.isVisible():
+            self._pending_splitter_fits.append((splitter, ratio))
+            return
+        layout = self.layout()
+        if layout is not None:
+            layout.activate()
+        if splitter.orientation() == Qt.Orientation.Horizontal:
+            extent = splitter.width()
+        else:
+            extent = splitter.height()
+        if extent <= 0:
+            self._fit_splitter_to_ratio(splitter, ratio)
+            return
+        factors = list(ratio[:n])
         if len(factors) < n:
             factors.extend([1] * (n - len(factors)))
         total = sum(factors) or 1
-        self._splitter.setSizes([int(w * f / total) for f in factors])
+        splitter.setSizes([int(extent * f / total) for f in factors])
 
     def _build_actions(self) -> None:
         """Top toolbar — four titled, rounded-border groups of
@@ -2111,6 +2171,22 @@ class MainWindow(QMainWindow):
         )
         act_font_settings.triggered.connect(self._open_font_settings)
 
+        # Vertical Mode — portrait-monitor layout. Checkable and
+        # persisted; the layout itself is applied at the end of this
+        # method, once every group frame exists.
+        self._act_vertical_mode = QAction("Vertical Mode", self)
+        self._act_vertical_mode.setObjectName("act_toggle_vertical_mode")
+        self._act_vertical_mode.setCheckable(True)
+        self._act_vertical_mode.setChecked(load_vertical_mode())
+        self._act_vertical_mode.setToolTip(
+            "Rearrange the window for a portrait (e.g. 1080x1920) monitor: "
+            "the map goes on top, with the route and waypoint tables side "
+            "by side below it, and the toolbar wraps onto two rows. Drag "
+            "the borders to resize the panes; each layout remembers its "
+            "own pane sizes. Toggle off to return to the landscape layout."
+        )
+        self._act_vertical_mode.toggled.connect(self._on_vertical_mode_toggled)
+
         # Airplane mode — checkable, off-by-default, with the
         # classic phone "airplane mode" silhouette as its icon so
         # it reads at a glance. Toggling it collapses the UI to
@@ -2137,7 +2213,7 @@ class MainWindow(QMainWindow):
         self._act_hide_waypoint_view = QAction("Hide Waypoint View", self)
         self._act_hide_waypoint_view.setObjectName("act_toggle_hide_waypoint_view")
         self._act_hide_waypoint_view.setCheckable(True)
-        self._act_hide_waypoint_view.setChecked(False)
+        self._act_hide_waypoint_view.setChecked(load_hide_waypoint_view())
         self._act_hide_waypoint_view.setToolTip(
             "Hide just the waypoint pane (search bar, provider combo, "
             "lat/lon toggle, master table, and pane hint). The map and "
@@ -2154,7 +2230,7 @@ class MainWindow(QMainWindow):
         self._act_hide_usage_hints = QAction("Hide Usage Hints", self)
         self._act_hide_usage_hints.setObjectName("act_toggle_hide_usage_hints")
         self._act_hide_usage_hints.setCheckable(True)
-        self._act_hide_usage_hints.setChecked(False)
+        self._act_hide_usage_hints.setChecked(load_hide_usage_hints())
         self._act_hide_usage_hints.setToolTip(
             "Hide every usage-hint footer (route panel, chart, and "
             "waypoint pane) to free vertical space. Toggle off to "
@@ -2255,7 +2331,12 @@ class MainWindow(QMainWindow):
         program_group = self._make_toolbar_group(
             "Program Settings",
             "group_program_settings",
-            [act_settings, act_cal_options, act_font_settings],
+            [
+                act_settings,
+                act_cal_options,
+                act_font_settings,
+                self._act_vertical_mode,
+            ],
         )
         view_toggles_group = self._make_toolbar_group(
             "View Toggles",
@@ -2359,11 +2440,40 @@ class MainWindow(QMainWindow):
             "}"
         )
 
-        tb.addWidget(program_group)
-        tb.addWidget(map_type_group)
-        tb.addWidget(view_toggles_group)
-        tb.addWidget(satellite_group)
-        tb.addWidget(program_info_group)
+        # The groups sit in a two-row container so Vertical Mode can wrap
+        # the toolbar onto a second row (a single row is ~1.5x wider than
+        # a 1080 px portrait screen). In landscape every group lives in
+        # the top row and the empty bottom row takes no height. Groups
+        # are parented to the container in visual order, which keeps
+        # ``findChildren`` order == left-to-right / top-to-bottom order.
+        rows_widget = QWidget()
+        rows_widget.setObjectName("toolbarGroupRows")
+        rows_layout = QVBoxLayout(rows_widget)
+        rows_layout.setContentsMargins(0, 0, 0, 0)
+        rows_layout.setSpacing(0)
+        self._toolbar_row_top = QHBoxLayout()
+        self._toolbar_row_bottom = QHBoxLayout()
+        for row in (self._toolbar_row_top, self._toolbar_row_bottom):
+            row.setContentsMargins(0, 0, 0, 0)
+            row.setSpacing(0)
+            rows_layout.addLayout(row)
+        self._toolbar_groups_second_row: list[QFrame] = [
+            view_toggles_group,
+            satellite_group,
+            program_info_group,
+        ]
+        for group in (
+            program_group,
+            map_type_group,
+            view_toggles_group,
+            satellite_group,
+            program_info_group,
+        ):
+            self._toolbar_row_top.addWidget(group)
+        self._toolbar_row_top.addStretch(1)
+        self._toolbar_row_bottom.addStretch(1)
+        self._toolbar_rows_widget = rows_widget
+        tb.addWidget(rows_widget)
 
         # Cancel-calibration sits OUTSIDE the groups so its
         # transient show/hide doesn't visually rearrange the
@@ -2395,6 +2505,116 @@ class MainWindow(QMainWindow):
         # would otherwise lack the loading-logic explainer line
         # until the chart-loaded path runs. Cheap to redo here.
         self._update_map_hint_text()
+
+        # Apply the persisted layout toggles. Their ``setChecked`` ran
+        # before the slots were connected, so replay them explicitly.
+        if self._act_vertical_mode.isChecked():
+            self._apply_toolbar_rows(True)
+            self._apply_layout_orientation(True)
+        self._apply_pane_visibility()
+        if self._act_hide_usage_hints.isChecked():
+            self._on_hide_usage_hints_toggled(True)
+
+    def _on_vertical_mode_toggled(self, on: bool) -> None:
+        """Switch between the landscape and portrait layouts and persist."""
+        save_vertical_mode(on)
+        self._apply_toolbar_rows(on)
+        self._apply_layout_orientation(on)
+
+    def _apply_toolbar_rows(self, two_rows: bool) -> None:
+        """Move the second-row toolbar groups to the bottom row (Vertical
+        Mode) or back to the end of the top row (landscape).
+
+        Each row ends with a stretch item; groups are inserted just before
+        it so they stay left-aligned and in their original order.
+        """
+        src = self._toolbar_row_top if two_rows else self._toolbar_row_bottom
+        dst = self._toolbar_row_bottom if two_rows else self._toolbar_row_top
+        for group in self._toolbar_groups_second_row:
+            if src.indexOf(group) < 0:
+                continue
+            src.removeWidget(group)
+            dst.insertWidget(dst.count() - 1, group)
+        self._toolbar_rows_widget.updateGeometry()
+        self._toolbar_rows_widget.adjustSize()
+
+    def _apply_layout_orientation(self, vertical: bool) -> None:
+        """Re-parent the route panel, map column and waypoint pane into
+        the landscape splitter (``vertical=False``) or the portrait
+        splitter tree (``vertical=True``).
+
+        The outgoing layout's splitter sizes are captured before the move
+        and the incoming layout's are restored after it, so each mode
+        keeps the pane sizes the user last dragged it to. Stretch factors
+        are stored on the child widgets' size policies by Qt, so they are
+        re-applied after every move.
+        """
+        if vertical == self._vertical_layout_active:
+            return
+        if vertical:
+            # Before first show (Vertical Mode restored at startup) the
+            # landscape sizes are all zero; keep the persisted state then.
+            if any(self._splitter.sizes()):
+                self._landscape_splitter_state = bytes(self._splitter.saveState())
+            self._vsplitter.insertWidget(0, self._map_column)
+            self._bottom_splitter.addWidget(self._route_panel)
+            self._bottom_splitter.addWidget(self._waypoint_pane)
+            for i, f in enumerate(self._vertical_stretch):
+                self._vsplitter.setStretchFactor(i, f)
+            for i, f in enumerate(self._bottom_stretch):
+                self._bottom_splitter.setStretchFactor(i, f)
+            self._layout_stack.setCurrentWidget(self._vsplitter)
+            restored = False
+            if self._vertical_splitter_states is not None:
+                main_state, bottom_state = self._vertical_splitter_states
+                main_ok = self._vsplitter.restoreState(main_state)
+                bottom_ok = self._bottom_splitter.restoreState(bottom_state)
+                restored = main_ok and bottom_ok
+            if not restored:
+                self._apply_vertical_splitter_ratio()
+        else:
+            self._vertical_splitter_states = self._current_vertical_splitter_states()
+            self._splitter.addWidget(self._route_panel)
+            self._splitter.addWidget(self._map_column)
+            self._splitter.addWidget(self._waypoint_pane)
+            for i, f in enumerate(self._pane_stretch):
+                self._splitter.setStretchFactor(i, f)
+            self._layout_stack.setCurrentWidget(self._splitter)
+            state = self._landscape_splitter_state
+            if state is None or not self._splitter.restoreState(state):
+                self._fit_splitter_to_ratio(self._splitter, self._pane_stretch)
+        self._vertical_layout_active = vertical
+        self._apply_pane_visibility()
+
+    def _current_vertical_splitter_states(self) -> tuple[bytes, bytes] | None:
+        """Live Vertical Mode splitter states while that layout is active,
+        otherwise the last captured / persisted ones."""
+        if not self._vertical_layout_active:
+            return self._vertical_splitter_states
+        return (
+            bytes(self._vsplitter.saveState()),
+            bytes(self._bottom_splitter.saveState()),
+        )
+
+    def _apply_vertical_splitter_ratio(self) -> None:
+        """Default Vertical Mode pane sizes (no saved sizes yet)."""
+        self._fit_splitter_to_ratio(self._vsplitter, self._vertical_stretch)
+        self._fit_splitter_to_ratio(self._bottom_splitter, self._bottom_stretch)
+
+    def _apply_pane_visibility(self) -> None:
+        """Set map-column / waypoint-pane visibility from the Airplane mode
+        and Hide Waypoint View toggles.
+
+        Needed after re-parenting panes between splitters (``setParent``
+        hides a widget) and at startup when the persisted toggles are
+        replayed.
+        """
+        airplane = self._act_airplane_mode.isChecked()
+        self._route_panel.setVisible(True)
+        self._map_column.setVisible(not airplane)
+        self._waypoint_pane.setVisible(
+            not airplane and not self._act_hide_waypoint_view.isChecked()
+        )
 
     def _make_toolbar_group(
         self,
@@ -2499,11 +2719,11 @@ class MainWindow(QMainWindow):
         immediately.
 
         The method is still named ``_open_font_settings`` to keep
-        the diff small; the dialog now covers fonts *and* the
-        traffic-icon size (introduced in v2 — see
-        ``ROADMAP-NEXT.md``). Renaming the method would touch
-        every call site for no behaviour change, so we let the
-        method name lag the user-visible label.
+        the diff small; the dialog now covers fonts, the
+        traffic-icon size and the waypoint-marker size. Renaming
+        the method would touch every call site for no behaviour
+        change, so we let the method name lag the user-visible
+        label.
 
         Re-applying via :func:`apply_dark_theme` (rather than
         manually walking widgets and calling ``setFont``) keeps the
@@ -2511,11 +2731,9 @@ class MainWindow(QMainWindow):
         re-polishes picks up the new ``font-size`` rule on the next
         paint pass, which is exactly the "user changed font size,
         all the affected surfaces re-render together" experience
-        the user expects. The traffic-icon size doesn't flow
-        through QSS — when the actual traffic overlay lands the
-        save here will trigger an overlay rebuild via signal; for
-        now it's persisted but visually inert because there are no
-        plane icons drawn yet.
+        the user expects. The traffic-icon and waypoint-marker
+        sizes don't flow through QSS, so their overlays are rebuilt
+        explicitly after the save.
 
         On Cancel the function is a no-op — nothing is saved,
         nothing is re-applied — so the dialog is a safe "try it
@@ -2668,6 +2886,7 @@ class MainWindow(QMainWindow):
         keep the pane hidden, so the two toggles compose without
         either having to disable the other.
         """
+        save_hide_waypoint_view(on)
         # Airplane mode collapses both the map column and the
         # waypoint pane; while it's active this toggle has no
         # additional effect (and we mustn't fight Airplane mode by
@@ -2697,6 +2916,7 @@ class MainWindow(QMainWindow):
         :meth:`_on_airplane_mode_toggled` after it restores the
         normal layout.
         """
+        save_hide_usage_hints(on)
         # Inverse semantics: ``on`` (i.e. "hide hints button is
         # pressed in") means hints should NOT be visible.
         visible = not on
@@ -9191,11 +9411,22 @@ class MainWindow(QMainWindow):
         # intermediate states. ``saveGeometry`` already encodes the
         # maximized/fullscreen flag, so a window closed maximized comes
         # back maximized next time.
+        # In Vertical Mode the landscape splitter is empty, so persist its
+        # last captured state instead of the live (empty) one.
         try:
+            landscape_state = self._landscape_splitter_state
+            if not self._vertical_layout_active or landscape_state is None:
+                landscape_state = bytes(self._splitter.saveState())
             save_window_layout(
                 geometry=bytes(self.saveGeometry()),
-                splitter_state=bytes(self._splitter.saveState()),
+                splitter_state=landscape_state,
             )
+            vertical_states = self._current_vertical_splitter_states()
+            if vertical_states is not None:
+                save_vertical_splitter_states(
+                    main_state=vertical_states[0],
+                    bottom_state=vertical_states[1],
+                )
         except Exception:  # pragma: no cover - persistence must never block close
             layout_diag.log("session.end.window_layout_save_failed")
         layout_diag.log("session.end")

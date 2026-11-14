@@ -99,8 +99,8 @@ FONT_SIZE_MAX_PX = 48
 
 # --- Traffic icon size --------------------------------------------------
 #
-# The on-chart silhouette for VATSIM traffic (introduced in v2 — see
-# ``ROADMAP-NEXT.md``) is drawn at runtime via ``QPainterPath`` rather
+# The on-chart silhouette for VATSIM traffic (see
+# ``cvfr_routemaster.traffic_overlay``) is drawn at runtime via ``QPainterPath`` rather
 # than a bundled raster, so its size is a single integer in screen
 # pixels measured **nose-to-tail** along the silhouette's long axis.
 # Wake-category scaling (L=0.85x, M=1.0x, H=1.2x, J=1.4x) is applied
@@ -1362,8 +1362,8 @@ def save_waypoint_show_latlon_cols(show: bool) -> None:
 
 
 # --- Traffic overlay visibility -----------------------------------------
-# View-mode toggle for the live VATSIM traffic overlay (v2 feature; see
-# ROADMAP-NEXT.md and cvfr_routemaster.traffic_overlay). Default is False
+# View-mode toggle for the live VATSIM traffic overlay (see
+# cvfr_routemaster.traffic_overlay). Default is False
 # so a fresh install starts with the overlay off — the user opts into the
 # extra visual layer when they want it. Persisted across sessions so the
 # choice sticks the same way the airplane-mode and hide-usage-hints
@@ -1394,9 +1394,72 @@ def save_show_vatsim_traffic(show: bool) -> None:
     _settings().setValue("show_vatsim_traffic", bool(show))
 
 
+# --- Layout view toggles ------------------------------------------------
+# "Hide Waypoint View", "Hide Usage Hints" and "Vertical Mode" toolbar
+# toggles. All default to False so a fresh install shows the full
+# landscape layout with every hint visible. Airplane mode is
+# deliberately NOT persisted: it's a per-flight state, and launching
+# straight into a chart-less window would look like a broken load.
+
+
+def load_hide_waypoint_view() -> bool:
+    """Whether the "Hide Waypoint View" toggle is pressed in."""
+    return bool(_settings().value("hide_waypoint_view", False, bool))
+
+
+def save_hide_waypoint_view(hide: bool) -> None:
+    _settings().setValue("hide_waypoint_view", bool(hide))
+
+
+def load_hide_usage_hints() -> bool:
+    """Whether the "Hide Usage Hints" toggle is pressed in."""
+    return bool(_settings().value("hide_usage_hints", False, bool))
+
+
+def save_hide_usage_hints(hide: bool) -> None:
+    _settings().setValue("hide_usage_hints", bool(hide))
+
+
+def load_vertical_mode() -> bool:
+    """Whether the portrait ("Vertical Mode") layout is active."""
+    return bool(_settings().value("vertical_mode", False, bool))
+
+
+def save_vertical_mode(on: bool) -> None:
+    _settings().setValue("vertical_mode", bool(on))
+
+
+def save_vertical_splitter_states(
+    *,
+    main_state: bytes | bytearray,
+    bottom_state: bytes | bytearray,
+) -> None:
+    """Persist the Vertical Mode splitter sizes: ``main_state`` is the
+    map-over-tables split, ``bottom_state`` the route-vs-waypoint split.
+    Stored separately from :func:`save_window_layout`'s landscape
+    splitter so switching modes never clobbers the other mode's sizes.
+    """
+    s = _settings()
+    s.setValue("vertical_main_splitter_state", bytes(main_state))
+    s.setValue("vertical_bottom_splitter_state", bytes(bottom_state))
+
+
+def load_vertical_splitter_states() -> tuple[bytes, bytes] | None:
+    """Return ``(main_state, bottom_state)`` or ``None`` if never saved."""
+    s = _settings()
+    main = s.value("vertical_main_splitter_state")
+    bottom = s.value("vertical_bottom_splitter_state")
+    if main is None or bottom is None:
+        return None
+    try:
+        return bytes(main), bytes(bottom)
+    except (TypeError, ValueError):
+        return None
+
+
 # --- Satellite view preferences -----------------------------------------
-# Three preference keys for the v3 satellite-imagery feature
-# (see ROADMAP-NEXT.md):
+# Three preference keys for the satellite-imagery feature (see
+# cvfr_routemaster.satellite_fetch and satellite_overlay):
 #
 # * ``show_satellite``: view-mode toggle for the toolbar's "Satellite
 #   view" QAction. Same default (off) and same lifecycle as

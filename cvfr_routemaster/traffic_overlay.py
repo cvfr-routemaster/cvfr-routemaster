@@ -24,8 +24,9 @@
 # any other official flight-planning material. Always cross-check
 # against current AIP material before any simulated flight.
 
-"""On-chart VATSIM traffic rendering layer (v2 feature; see
-``ROADMAP-NEXT.md``).
+"""On-chart VATSIM traffic rendering layer (data comes from
+:mod:`cvfr_routemaster.vatsim_feed` via
+:mod:`cvfr_routemaster.vatsim_worker`).
 
 This module owns the *visual* side of the live-traffic display: a
 :class:`TrafficOverlay` manager that holds a list of plane items in
