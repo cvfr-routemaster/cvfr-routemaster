@@ -206,7 +206,9 @@ completely free and will always remain so.
    ולחסוך זמן.
 2. צריך ש-tesseract יהיה מותקן כדי לבצע OCR (זיהוי תווים). ב-Debian
    (וב-Ubuntu, Mint וכו') מתקינים אותו כך:
-   `sudo apt install tesseract-ocr tesseract-ocr-eng tesseract-ocr-heb`.
+
+   <pre dir="ltr"><code>sudo apt install tesseract-ocr tesseract-ocr-eng tesseract-ocr-heb</code></pre>
+
    אם אתם בהפצה אחרת, סביר שאתם יודעים מהן פקודות התקנת החבילות. ב-Windows
    צריך את קובצי ההפעלה של tesseract. קובץ ה-ZIP של הגרסה כולל תיקייה
    בשם `tesseract` — מעתיקים אותה ליד `cvfr_routemaster`, וזהו.
