@@ -474,14 +474,15 @@ def _toolbar_button_texts(tb) -> list[str]:
     ]
 
 
-def test_main_toolbar_visible_actions_are_only_eleven(main_window) -> None:
-    """The toolbar must surface exactly eleven visible commands across
+def test_main_toolbar_visible_actions_are_only_twelve(main_window) -> None:
+    """The toolbar must surface exactly twelve visible commands across
     its five titled groups, in this left-to-right order:
 
     1. Program Settings group:
        * Map File Settings…
        * Map Calibration Options…
        * Display Settings…
+       * Vertical Mode
     2. Map Type group (v4):
        * CVFR - כטר"מ
        * LSA - אז"מ
@@ -522,6 +523,7 @@ def test_main_toolbar_visible_actions_are_only_eleven(main_window) -> None:
         "Map File Settings…",
         "Map Calibration Options…",
         "Display Settings…",
+        "Vertical Mode",
         'CVFR - כטר"מ',
         'LSA - אז"מ',
         "Airplane mode",
@@ -1201,9 +1203,8 @@ def test_hide_waypoint_view_action_is_checkable_and_starts_unpressed(
     main_window,
 ) -> None:
     """The Hide Waypoint View toggle must be checkable and start
-    unchecked on every launch — like Airplane mode it's a viewing
-    state, not a persistent preference, so a fresh start always
-    shows the waypoint pane.
+    unchecked on a fresh install (nothing persisted yet), so a
+    first launch always shows the waypoint pane.
     """
     act = main_window.findChild(QAction, "act_toggle_hide_waypoint_view")
     assert act is not None
@@ -1260,8 +1261,8 @@ def test_hide_usage_hints_action_is_checkable_and_starts_unpressed(
     main_window,
 ) -> None:
     """The Hide Usage Hints toggle must be checkable and start
-    unchecked on every launch so the hints are visible by default
-    for first-time / occasional users."""
+    unchecked on a fresh install so the hints are visible by default
+    for first-time users."""
     act = main_window.findChild(QAction, "act_toggle_hide_usage_hints")
     assert act is not None
     assert act.isCheckable()

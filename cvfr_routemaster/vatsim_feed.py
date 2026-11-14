@@ -25,7 +25,7 @@
 # against current AIP material before any simulated flight.
 
 """VATSIM v3 datafeed — pure-Python data layer for the live traffic
-overlay (v2 feature; see ``ROADMAP-NEXT.md``).
+overlay (rendered by :mod:`cvfr_routemaster.traffic_overlay`).
 
 This module deliberately has **zero Qt dependency** so it can be
 unit-tested without a ``QApplication`` and reasoned about as plain

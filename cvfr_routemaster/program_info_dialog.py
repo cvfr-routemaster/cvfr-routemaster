@@ -41,7 +41,8 @@ legal text a recipient of this binary needs to read:
   for at least three years).
 * Attribution for the Israeli CVFR and LSA charts (CAAI /
   State of Israel; charts are NOT distributed with the program
-  — see ``ROADMAP-NEXT.md`` for the dynamic-fetch design). The
+  — they are downloaded at runtime, see
+  :mod:`cvfr_routemaster.chart_source`). The
   per-mode source URLs are enumerated from the
   :mod:`cvfr_routemaster.map_modes` registry so every chart
   product the app can switch to is attributed.

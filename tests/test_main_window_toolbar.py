@@ -30,7 +30,7 @@ The top toolbar used to be a flat list of buttons. It now reads
 as titled, rounded-border :class:`QFrame` groups:
 
 * **Program Settings**: Map File Settings, Map Calibration
-  Options, Display Settings.
+  Options, Display Settings, Vertical Mode.
 * **Map Type** (v4): one Garmin-green toggle button per chart
   product (CVFR, LSA, …), sitting just right of Program Settings.
 * **View Toggles**: Airplane mode, Hide Waypoint View, Hide
@@ -131,6 +131,7 @@ def test_program_settings_group_exists_with_expected_buttons(
         "act_open_map_file_settings",
         "act_open_calibration_options",
         "act_open_font_settings",
+        "act_toggle_vertical_mode",
     ]
 
 

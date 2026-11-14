@@ -44,14 +44,14 @@ Three sub-layers, top-down:
    keys.
 2. **Pure projection math** — :func:`lonlat_to_world_pixel` and its
    inverse :func:`world_pixel_to_lonlat`, plus :func:`tile_for_lonlat`,
-   :func:`bbox_to_tiles`, :func:`metres_per_pixel`. The full
-   chart-shaped-warp renderer in Phase 3 builds on top of these to
-   turn each chart pixel into a sample of the satellite mosaic.
+   :func:`bbox_to_tiles`, :func:`metres_per_pixel`. The per-tile
+   overlay geometry in :mod:`cvfr_routemaster.satellite_overlay_math`
+   builds on top of these to place each tile on the chart.
 3. :class:`TileCache` — owns the on-disk cache: per-tile path
    computation, atomic put/get, total-size accounting, LRU eviction.
    The class deliberately holds **no in-memory state** beyond root
    path + provider name so two ``TileCache`` instances pointing at
-   the same dir (e.g. one in the worker thread, one in the renderer)
+   the same dir (e.g. one in the worker thread, one in the overlay)
    never disagree on what's cached. Filesystem mtime is the source
    of truth for both presence and recency.
 
@@ -65,14 +65,13 @@ providers serve **Web Mercator** (EPSG:3857). The two projections
 disagree by ≈17% N–S at Israel's latitude and visibly more than a
 single chart-pixel over a 4° span.
 
-We do **not** try to align the projections. Instead the renderer
-(Phase 3) walks every chart pixel ``(x, y)``, runs it through the
-existing affine to ``(lon, lat)``, then through this module's
-:func:`lonlat_to_world_pixel` to look up the satellite mosaic
-sample. Every other overlay (route, traffic, altitude arrows,
-calibration anchors) keeps working unchanged because the satellite
-pixmap shares the chart's lat/lon-to-pixel relationship after the
-warp.
+We do **not** try to align the projections globally. Instead
+:mod:`cvfr_routemaster.satellite_overlay_math` fits a projective
+transform per tile from its four corners (lat/lon via this module,
+then through the chart calibration), which is sub-pixel accurate
+over a single tile's footprint. Every other overlay (route, traffic,
+altitude arrows, calibration anchors) keeps working unchanged
+because the tiles are placed in the chart's own pixel space.
 
 Slippy-map convention
 ---------------------
@@ -271,9 +270,7 @@ def lonlat_to_world_pixel(
 
     World-pixel space spans ``[0, TILE_SIZE_PX * 2**z)`` in both
     axes. Returned coordinates are floats (continuous), so callers
-    can sample with sub-tile precision — exactly what Phase 3's
-    inverse warp needs when sampling the satellite mosaic at every
-    chart pixel.
+    can work with sub-tile precision.
 
     The relation to tile coords is just the integer floor:
     ``tile_x = int(world_x // TILE_SIZE_PX)``,
@@ -312,9 +309,9 @@ def world_pixel_to_lonlat(
     """Inverse of :func:`lonlat_to_world_pixel`.
 
     Convert a Web Mercator world-pixel coordinate at zoom ``z`` back
-    to ``(lon, lat)`` in degrees. Used by the Phase 3 renderer to
-    map satellite-mosaic samples back to chart-pixel positions
-    during the inverse warp; also handy for sanity tests
+    to ``(lon, lat)`` in degrees. Used by
+    :mod:`cvfr_routemaster.satellite_overlay_math` to get each
+    tile's corner and centre lat/lon; also handy for sanity tests
     (round-tripping any lat/lon through both functions should
     identity to within float precision).
 
@@ -374,7 +371,9 @@ def bbox_to_tiles(
     """Return every :class:`TileCoord` whose footprint intersects the
     given lat/lon bounding box at zoom ``z``.
 
-    Used by the Phase 2 bulk-fetch enumerator to compute "which tiles
+    Used by the bulk-fetch enumerator
+    (:func:`cvfr_routemaster.satellite_fetch.tiles_to_fetch_for_bbox`)
+    to compute "which tiles
     cover all of Israel?" given :data:`ISRAEL_BBOX`. The returned
     list is in row-major order (outer loop ``y``, inner loop ``x``)
     so that progress through the list maps to a vaguely top-down

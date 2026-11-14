@@ -23,7 +23,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from cvfr_routemaster.altitude_arrows import (  # noqa: E402
     extract_altitude_arrows,
-    match_altitudes_for_segment,
     project_arrows_to_lonlat,
 )
 from cvfr_routemaster.altitude_cache import (  # noqa: E402
