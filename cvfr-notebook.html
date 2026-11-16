@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CVFR In-flight Notebook — 5 × 8 inches</title>
+  <style>
+    /*
+      Landscape A4: 297 × 210 mm. Two cut pages: 127 × 203.2 mm (5 × 8 inches).
+      Each page reserves 8 mm at the top for the clip and 3 mm on other edges.
+      Three equal sections are separated by two 2 mm gaps.
+      Physical units are intentional: print at 100% / Actual size.
+    */
+    * { box-sizing: border-box; }
+    :root { font-family: Arial, Helvetica, sans-serif; color: #000; }
+    body { margin: 0; background: #e9ebee; }
+    .print-help {
+      max-width: 297mm; margin: 20px auto; padding: 0 16px;
+      font-size: 14px; line-height: 1.5; color: #252a30;
+    }
+    .print-help h1 { margin: 0 0 5px; font-size: 21px; }
+    .print-help p { margin: 5px 0; }
+    button {
+      font: inherit; font-weight: bold; padding: 8px 18px;
+      border: 1px solid #333; border-radius: 4px;
+      color: #fff; background: #252a30; cursor: pointer;
+    }
+    .sheet {
+      position: relative; width: 297mm; height: 210mm;
+      display: grid; grid-template-columns: repeat(2, 148.5mm);
+      grid-template-rows: 210mm; place-items: center;
+      margin: 0 auto 24px; background: #fff;
+      box-shadow: 0 3px 18px #0002;
+    }
+    /* The dashed perimeter is the final 5 × 8 inch trim size. */
+    .notebook-page::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      border: 0.15mm dashed #999;
+    }
+    .notebook-page {
+      position: relative; width: 127mm; height: 203.2mm; padding: 8mm 3mm 3mm;
+      display: grid; grid-template-rows: repeat(3, minmax(0, 1fr));
+      gap: 2mm; break-inside: avoid;
+    }
+    .section { border: 0.3mm solid #000; min-width: 0; min-height: 0; }
+    .departure, .arrival {
+      padding: 1.5mm; display: flex; flex-direction: column; gap: 1mm;
+    }
+    h2 {
+      margin: 0; font-size: 9pt; line-height: 4mm;
+      font-weight: 700; letter-spacing: 0.35mm;
+    }
+    .row { display: grid; gap: 0.8mm; flex: none; }
+    .departure-heading, .arrival-heading { display: grid; grid-template-columns: minmax(0, 1fr) 37mm 31mm 12mm; gap: 1.2mm; align-items: center; height: 7mm; flex: none; }
+    .wind { height: 7mm; }
+    .info, .atis { height: 7mm; }
+    .frequencies { grid-template-columns: 17mm repeat(4, minmax(0, 1fr)); height: 14mm; }
+    .clearance { grid-template-columns: 10mm 14mm 15mm 16mm minmax(0, 1fr) 19mm 14mm; gap: 0.6mm; height: 14.5mm; }
+    .field { border: 0.2mm solid #000; min-width: 0; padding: 0.7mm; }
+    .arrival-instructions { grid-template-columns: 10mm 20mm 16mm 14mm minmax(0, 1fr); height: 14.5mm; }
+    .taxi-flow.arrival-taxi { grid-template-columns: 16mm repeat(8, minmax(0, 1fr)); }
+    .field span { display: block; font-size: 8pt; line-height: 3.5mm; white-space: nowrap; }
+    .taxi { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    h3 { font-size: 8pt; font-weight: 400; line-height: 4mm; margin: 0 0 0.5mm; }
+    .taxi-flow { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 1.3mm; flex: 1; min-height: 8mm; }
+    .taxi-step { position: relative; border: 0.2mm solid #000; }
+    .taxi-step:not(:last-child)::after {
+      content: "›"; position: absolute; right: -1.55mm; top: 50%;
+      transform: translateY(-50%); width: 1.3mm;
+      font-size: 7pt; line-height: 1; text-align: center;
+    }
+    .enroute { padding: 1.5mm; display: grid; grid-template-rows: 4mm 42.5mm minmax(0, 1fr); gap: 0.8mm; }
+    .handoff-log { width: 100%; height: 42.5mm; border-collapse: collapse; table-layout: fixed; }
+    .handoff-log .vrp-col { width: 20mm; }
+    .handoff-log .station-col { width: 37mm; }
+    .handoff-log .freq-col { width: 25mm; }
+    .handoff-log .qnh-col { width: 17mm; }
+    .handoff-log th, .handoff-log td { border: 0.2mm solid #000; padding: 0 0.7mm; text-align: left; }
+    .handoff-log th { height: 5mm; font-size: 8pt; line-height: 3.5mm; font-weight: 400; white-space: nowrap; }
+    .handoff-log td { height: 7.5mm; }
+    @page { size: A4 landscape; margin: 0; }
+    @media print {
+      html, body { width: 297mm; margin: 0; padding: 0; background: #fff; }
+      .print-help { display: none; }
+      .sheet { margin: 0; box-shadow: none; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+  <header class="print-help">
+    <h1>CVFR in-flight notebook</h1>
+    <p>Two identical 5 × 8 inch pages per landscape A4 sheet · each cut page is 127 × 203.2 mm, with 8 mm reserved at the top for the kneeboard clip.</p>
+    <p>Print on <strong>A4, landscape, 100% / Actual size</strong>. Set margins to <strong>None</strong> and turn off browser headers and footers. Trim around each dashed rectangle.</p>
+    <p><button type="button" onclick="window.print()">Print A4 sheet</button></p>
+  </header>
+  <main class="sheet" aria-label="Landscape A4 sheet with two 5 by 8 inch notebook pages">
+    <article class="notebook-page" aria-label="CVFR notebook page">
+      <section class="section departure" aria-label="Departure">
+        <div class="departure-heading"><h2>DEPARTURE</h2><div class="field wind" aria-label="Wind direction and speed, including gusts"><span>WIND</span></div><div class="field atis" aria-label="ATIS frequency"><span>ATIS</span></div><div class="field info" aria-label="ATIS information identifier"><span>Info</span></div></div>
+        <div class="row frequencies">
+          <div class="field airport"><span>ICAO</span></div><div class="field "><span>CLR</span></div><div class="field "><span>GND</span></div><div class="field "><span>TWR</span></div><div class="field "><span>DEP</span></div>
+        </div>
+        <div class="row clearance" aria-label="Clearance">
+          <div class="field"><span>Rwy</span></div><div class="field"><span>QNH</span></div><div class="field"><span>DEP-Turn</span></div><div class="field" aria-label="DEP-Ini-Alt"><span>DEP-Ini-Alt</span></div><div class="field"><span>DEP-VRP</span></div><div class="field" aria-label="DEP-VRP-Alt"><span>DEP-VRP-Alt</span></div><div class="field"><span>SQWK</span></div>
+        </div>
+        <div class="taxi">
+          <h3>Taxi Route</h3>
+          <div class="taxi-flow" aria-label="Nine taxiway and holding point boxes">
+            <div class="taxi-step" aria-label="Taxi step 1"></div><div class="taxi-step" aria-label="Taxi step 2"></div><div class="taxi-step" aria-label="Taxi step 3"></div><div class="taxi-step" aria-label="Taxi step 4"></div><div class="taxi-step" aria-label="Taxi step 5"></div><div class="taxi-step" aria-label="Taxi step 6"></div><div class="taxi-step" aria-label="Taxi step 7"></div><div class="taxi-step" aria-label="Taxi step 8"></div><div class="taxi-step" aria-label="Taxi step 9"></div>
+          </div>
+        </div>
+      </section>
+      <section class="section enroute" aria-label="Enroute">
+        <h2>ENROUTE</h2>
+        <table class="handoff-log" aria-label="Controller handoffs">
+          <colgroup><col class="vrp-col"><col class="station-col"><col class="freq-col"><col class="qnh-col"><col></colgroup>
+          <thead><tr><th scope="col">At VRP</th><th scope="col">Station</th><th scope="col">Freq</th><th scope="col">QNH</th><th scope="col">SQWK</th></tr></thead>
+          <tbody>
+            <tr><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          </tbody>
+        </table>
+        <div class="field enroute-notes"><span>Notes</span></div>
+      </section>
+      <section class="section arrival" aria-label="Arrival">
+        <div class="arrival-heading"><h2>ARRIVAL</h2><div class="field wind" aria-label="Arrival wind direction and speed, including gusts"><span>WIND</span></div><div class="field atis" aria-label="Arrival ATIS frequency"><span>ATIS</span></div><div class="field info" aria-label="Arrival ATIS information identifier"><span>Info</span></div></div>
+        <div class="row frequencies" aria-label="Arrival airport and frequencies">
+          <div class="field"><span>ICAO</span></div><div class="field"><span>APP</span></div><div class="field"><span>TWR</span></div><div class="field"><span>GND</span></div><div class="field" aria-label="Other local or advisory frequency"><span>OTHER</span></div>
+        </div>
+        <div class="row arrival-instructions" aria-label="Arrival instructions">
+          <div class="field"><span>Rwy</span></div><div class="field" aria-label="Pattern direction, left or right"><span>Pattern L/R</span></div><div class="field" aria-label="Pattern altitude"><span>PAT-ALT</span></div><div class="field"><span>QNH</span></div><div class="field" aria-label="Joining and reporting instructions, including assigned entry altitude"><span>Join / Report</span></div>
+        </div>
+        <div class="taxi">
+          <h3>Vacate / Taxi Route</h3>
+          <div class="taxi-flow arrival-taxi" aria-label="Runway exit followed by eight taxi instruction boxes">
+            <div class="taxi-step field" aria-label="Junction to vacate at"><span>Vacate</span></div><div class="taxi-step" aria-label="Arrival taxi step 1"></div><div class="taxi-step" aria-label="Arrival taxi step 2"></div><div class="taxi-step" aria-label="Arrival taxi step 3"></div><div class="taxi-step" aria-label="Arrival taxi step 4"></div><div class="taxi-step" aria-label="Arrival taxi step 5"></div><div class="taxi-step" aria-label="Arrival taxi step 6"></div><div class="taxi-step" aria-label="Arrival taxi step 7"></div><div class="taxi-step" aria-label="Arrival taxi step 8"></div>
+          </div>
+        </div>
+      </section>
+    </article>
+    <article class="notebook-page" aria-label="CVFR notebook page">
+      <section class="section departure" aria-label="Departure">
+        <div class="departure-heading"><h2>DEPARTURE</h2><div class="field wind" aria-label="Wind direction and speed, including gusts"><span>WIND</span></div><div class="field atis" aria-label="ATIS frequency"><span>ATIS</span></div><div class="field info" aria-label="ATIS information identifier"><span>Info</span></div></div>
+        <div class="row frequencies">
+          <div class="field airport"><span>ICAO</span></div><div class="field "><span>CLR</span></div><div class="field "><span>GND</span></div><div class="field "><span>TWR</span></div><div class="field "><span>DEP</span></div>
+        </div>
+        <div class="row clearance" aria-label="Clearance">
+          <div class="field"><span>Rwy</span></div><div class="field"><span>QNH</span></div><div class="field"><span>DEP-Turn</span></div><div class="field" aria-label="DEP-Ini-Alt"><span>DEP-Ini-Alt</span></div><div class="field"><span>DEP-VRP</span></div><div class="field" aria-label="DEP-VRP-Alt"><span>DEP-VRP-Alt</span></div><div class="field"><span>SQWK</span></div>
+        </div>
+        <div class="taxi">
+          <h3>Taxi Route</h3>
+          <div class="taxi-flow" aria-label="Nine taxiway and holding point boxes">
+            <div class="taxi-step" aria-label="Taxi step 1"></div><div class="taxi-step" aria-label="Taxi step 2"></div><div class="taxi-step" aria-label="Taxi step 3"></div><div class="taxi-step" aria-label="Taxi step 4"></div><div class="taxi-step" aria-label="Taxi step 5"></div><div class="taxi-step" aria-label="Taxi step 6"></div><div class="taxi-step" aria-label="Taxi step 7"></div><div class="taxi-step" aria-label="Taxi step 8"></div><div class="taxi-step" aria-label="Taxi step 9"></div>
+          </div>
+        </div>
+      </section>
+      <section class="section enroute" aria-label="Enroute">
+        <h2>ENROUTE</h2>
+        <table class="handoff-log" aria-label="Controller handoffs">
+          <colgroup><col class="vrp-col"><col class="station-col"><col class="freq-col"><col class="qnh-col"><col></colgroup>
+          <thead><tr><th scope="col">At VRP</th><th scope="col">Station</th><th scope="col">Freq</th><th scope="col">QNH</th><th scope="col">SQWK</th></tr></thead>
+          <tbody>
+            <tr><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td></td><td></td><td></td><td></td><td></td></tr>
+            <tr><td></td><td></td><td></td><td></td><td></td></tr>
+          </tbody>
+        </table>
+        <div class="field enroute-notes"><span>Notes</span></div>
+      </section>
+      <section class="section arrival" aria-label="Arrival">
+        <div class="arrival-heading"><h2>ARRIVAL</h2><div class="field wind" aria-label="Arrival wind direction and speed, including gusts"><span>WIND</span></div><div class="field atis" aria-label="Arrival ATIS frequency"><span>ATIS</span></div><div class="field info" aria-label="Arrival ATIS information identifier"><span>Info</span></div></div>
+        <div class="row frequencies" aria-label="Arrival airport and frequencies">
+          <div class="field"><span>ICAO</span></div><div class="field"><span>APP</span></div><div class="field"><span>TWR</span></div><div class="field"><span>GND</span></div><div class="field" aria-label="Other local or advisory frequency"><span>OTHER</span></div>
+        </div>
+        <div class="row arrival-instructions" aria-label="Arrival instructions">
+          <div class="field"><span>Rwy</span></div><div class="field" aria-label="Pattern direction, left or right"><span>Pattern L/R</span></div><div class="field" aria-label="Pattern altitude"><span>PAT-ALT</span></div><div class="field"><span>QNH</span></div><div class="field" aria-label="Joining and reporting instructions, including assigned entry altitude"><span>Join / Report</span></div>
+        </div>
+        <div class="taxi">
+          <h3>Vacate / Taxi Route</h3>
+          <div class="taxi-flow arrival-taxi" aria-label="Runway exit followed by eight taxi instruction boxes">
+            <div class="taxi-step field" aria-label="Junction to vacate at"><span>Vacate</span></div><div class="taxi-step" aria-label="Arrival taxi step 1"></div><div class="taxi-step" aria-label="Arrival taxi step 2"></div><div class="taxi-step" aria-label="Arrival taxi step 3"></div><div class="taxi-step" aria-label="Arrival taxi step 4"></div><div class="taxi-step" aria-label="Arrival taxi step 5"></div><div class="taxi-step" aria-label="Arrival taxi step 6"></div><div class="taxi-step" aria-label="Arrival taxi step 7"></div><div class="taxi-step" aria-label="Arrival taxi step 8"></div>
+          </div>
+        </div>
+      </section>
+    </article>
+  </main>
+</body>
+</html>
