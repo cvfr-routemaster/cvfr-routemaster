@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CVFR Route Master — Israel CVFR / LSA route planner for VATSIM | מתכנן מסלולי כטר"מ</title>
+  <meta name="description" content="Free route planner for flying CVFR and LSA-CVFR routes in Israel on VATSIM (VATIL) with MSFS 2020, MSFS 2024 or X-Plane. CAAI chart with satellite imagery, automatic route altitudes, live VATSIM traffic. מתכנן מסלולי כטר&quot;מ ואז&quot;מ בישראל לטייסי VATSIM.">
+  <meta name="keywords" content="CVFR Israel, LSA-CVFR, VFR Israel, VATSIM Israel, VATIL, CAAI CVFR chart, flight planning, route planner, MSFS, X-Plane, flight simulator, כטר&quot;מ, אז&quot;מ, מפת כטר&quot;מ, סימולטור טיסה">
+  <link rel="canonical" href="https://cvfr-routemaster.github.io/cvfr-routemaster/">
+  <link rel="icon" type="image/png" href="icon.png">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="CVFR Route Master — Israel CVFR route planner for VATSIM">
+  <meta property="og:description" content="Plan and study CVFR / LSA routes in Israel: CAAI chart + satellite imagery, automatic altitudes, live VATSIM traffic. Free and open source.">
+  <meta property="og:url" content="https://cvfr-routemaster.github.io/cvfr-routemaster/">
+  <meta property="og:image" content="https://cvfr-routemaster.github.io/cvfr-routemaster/icon.png">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:locale:alternate" content="he_IL">
+  <meta name="twitter:card" content="summary">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "CVFR Route Master",
+    "alternateName": "מתכנן מסלולי כטר\"מ",
+    "description": "Route planner for CVFR and LSA-CVFR flights in Israel on VATSIM, for flight-simulator use.",
+    "applicationCategory": "GameApplication",
+    "applicationSubCategory": "Flight simulation",
+    "operatingSystem": "Windows, Linux (from source)",
+    "inLanguage": ["en", "he"],
+    "license": "https://www.gnu.org/licenses/agpl-3.0.html",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+    "downloadUrl": "https://github.com/cvfr-routemaster/cvfr-routemaster/releases/latest",
+    "codeRepository": "https://github.com/cvfr-routemaster/cvfr-routemaster",
+    "url": "https://cvfr-routemaster.github.io/cvfr-routemaster/"
+  }
+  </script>
+
+  <style>
+    * { box-sizing: border-box; }
+    :root {
+      --bg: #0f1419; --panel: #172029; --text: #e6edf3; --muted: #9aa7b4;
+      --accent: #2ea043; --accent-hover: #3fb950; --link: #58a6ff; --border: #2a3644;
+    }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+      line-height: 1.6;
+    }
+    a { color: var(--link); }
+    header {
+      text-align: center; padding: 56px 20px 40px;
+      background: linear-gradient(180deg, #1b2733 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--border);
+    }
+    header img { width: 96px; height: 96px; }
+    h1 { margin: 12px 0 4px; font-size: 2.4rem; }
+    .tagline { margin: 0 auto; max-width: 720px; font-size: 1.2rem; color: var(--muted); }
+    .tagline-he { margin-top: 6px; }
+    .buttons { margin-top: 28px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-block; padding: 12px 22px; border-radius: 6px;
+      font-weight: 600; text-decoration: none; border: 1px solid var(--border);
+      color: var(--text); background: var(--panel);
+    }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { background: var(--accent-hover); }
+    .btn:hover { border-color: var(--muted); }
+    main {
+      max-width: 1100px; margin: 0 auto; padding: 40px 20px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 28px;
+    }
+    section {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 10px; padding: 8px 26px 20px;
+    }
+    section h2 { font-size: 1.35rem; }
+    section li { margin-bottom: 6px; }
+    .warning {
+      grid-column: 1 / -1; text-align: center; padding: 14px;
+      border: 1px solid #9e6a03; background: #2b2111; border-radius: 10px;
+    }
+    footer {
+      text-align: center; color: var(--muted); font-size: 0.9rem;
+      padding: 20px 20px 40px; border-top: 1px solid var(--border);
+    }
+    @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="icon.png" alt="CVFR Route Master icon">
+    <h1>CVFR Route Master</h1>
+    <p class="tagline">CVFR / LSA route planner for flying VFR in Israel on VATSIM — for MSFS 2020, MSFS 2024, X-Plane and other flight simulators.</p>
+    <p class="tagline tagline-he" dir="rtl" lang="he">מתכנן מסלולי כטר"מ ואז"מ בישראל לטייסי VATSIM וסימולטורי טיסה.</p>
+    <div class="buttons">
+      <a class="btn primary" href="https://github.com/cvfr-routemaster/cvfr-routemaster/releases/latest">⬇ Download for Windows · להורדה</a>
+      <a class="btn" href="https://github.com/cvfr-routemaster/cvfr-routemaster">Source code on GitHub</a>
+    </div>
+  </header>
+
+  <main>
+    <section lang="en">
+      <h2>What it does</h2>
+      <ul>
+        <li>Combines the CAAI CVFR and LSA-CVFR charts with satellite imagery of Israel.</li>
+        <li>Plan a route by clicking reporting points on the chart (for example LLHZ Herzliya, then BAZRA).</li>
+        <li>Computes distances, times and magnetic bearings between waypoints, including arbitrary intermediate points.</li>
+        <li>Reads route altitudes from the arrows printed on the chart.</li>
+        <li>Produces a route string that is easy to paste into a VATSIM flight plan; save and load routes.</li>
+        <li>Shows the route on both the chart and satellite imagery, so you can learn the visual landmarks.</li>
+        <li>Optional live VATSIM traffic over Israel (callsign, type, altitude, speed), updated every 15 seconds.</li>
+        <li>Search waypoints by name and open them in Google, Apple or Bing satellite views.</li>
+      </ul>
+      <h2>Getting started</h2>
+      <p>No installation: extract the 7z archive and run the executable. On first launch the tool downloads the charts from CAAI and then about 2&nbsp;GB of satellite imagery in the background. Linux users can run it from source.</p>
+      <p><a href="https://github.com/cvfr-routemaster/cvfr-routemaster#readme">Full instructions in the README →</a></p>
+    </section>
+
+    <section dir="rtl" lang="he">
+      <h2>מה התוכנה עושה</h2>
+      <ul>
+        <li>משלבת את מפות הכטר"מ והאז"מ של רת"א עם צילומי לוויין של ישראל.</li>
+        <li>תכנון מסלול בלחיצה על נקודות הדיווח במפה (למשל LLHZ הרצליה, ואחריה BAZRA).</li>
+        <li>חישוב מרחקים, זמנים וכיוונים מגנטיים בין נקודות דרך, כולל נקודות ביניים שרירותיות.</li>
+        <li>קריאת גובהי המסלול מהחצים המודפסים על המפה.</li>
+        <li>הפקת מסלול שקל להעתיק לתוכנית טיסה ב-VATSIM, ושמירה וטעינה של מסלולים.</li>
+        <li>הצגת המסלול על המפה ועל צילומי הלוויין, כדי ללמוד את ציוני הדרך החזותיים.</li>
+        <li>הצגת תנועה חיה מ-VATSIM מעל ישראל (אות קריאה, סוג, גובה, מהירות), עדכון כל 15 שניות.</li>
+        <li>חיפוש נקודות דרך לפי שם ופתיחתן בתצוגות הלוויין של Google, Apple ו-Bing.</li>
+      </ul>
+      <h2>איך מתחילים</h2>
+      <p>אין צורך בהתקנה: מחלצים את קובץ ה-7z ומריצים את קובץ ההפעלה. בהפעלה הראשונה התוכנה מורידה את המפות מרת"א, ואחר כך כ-2&nbsp;GB של צילומי לוויין ברקע. ב-Linux ניתן להריץ מקוד המקור.</p>
+      <p><a href="https://github.com/cvfr-routemaster/cvfr-routemaster#readme">ההוראות המלאות ב-README ←</a></p>
+    </section>
+
+    <p class="warning">
+      <strong>For flight-simulator use only — NOT for real-world aviation.</strong><br>
+      <span dir="rtl" lang="he"><strong>לשימוש בסימולטורי טיסה בלבד — לא לתעופה אמיתית.</strong></span>
+    </p>
+  </main>
+
+  <footer>
+    Free and open source under the <a href="https://www.gnu.org/licenses/agpl-3.0.html">GNU AGPL</a>.
+    Charts are © CAAI and are downloaded by the program for personal use; they are not distributed with it.
+  </footer>
+</body>
+</html>

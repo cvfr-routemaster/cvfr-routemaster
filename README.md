@@ -1,6 +1,14 @@
 # CVFR Route Master
 
+**CVFR / LSA route planner for flying VFR in Israel on VATSIM** — for MSFS 2020,
+MSFS 2024, X-Plane and other flight simulators. Free and open source (AGPL).
+
+**[⬇ Download the latest release (Windows)](https://github.com/cvfr-routemaster/cvfr-routemaster/releases/latest)**
+· [Project website](https://cvfr-routemaster.github.io/cvfr-routemaster/)
+
 <div dir="rtl" lang="he">
+
+**[⬇ להורדת הגרסה האחרונה (Windows)](https://github.com/cvfr-routemaster/cvfr-routemaster/releases/latest)**
 
 עוזר לתכנון מסלולי כטר"מ בישראל, לשימוש בסימולטורי טיסה.
 
@@ -54,8 +62,9 @@ altitude and speed (the colour indicates the wake category).
 
 ## שימוש בסיסי
 
-1. **אין צורך בהתקנה** — פשוט מחלצים את קובץ ה-ZIP לכל מקום שרוצים ומריצים
-   את קובץ ההפעלה. הגרסה הנוכחית בנויה ל-Windows בלבד, אבל ניתן להריץ את
+1. **אין צורך בהתקנה** — פשוט מחלצים את קובץ ה-7z לכל מקום שרוצים ומריצים
+   את קובץ ההפעלה (Windows 11 פותח קובצי 7z ישירות; ב-Windows 10 צריך
+   את [7-Zip](https://www.7-zip.org/)). הגרסה הנוכחית בנויה ל-Windows בלבד, אבל ניתן להריץ את
    התוכנה גם מקוד המקור ב-Linux — ראו את הסעיף האחרון במסמך זה.
 2. בגלל זכויות יוצרים, הכלי אינו מגיע עם המפה או עם צילומי הלוויין — אבל
    הוא יוריד אותם לשימושכם האישי, בכפוף לתנאי השימוש של כל ספק.
@@ -109,8 +118,9 @@ altitude and speed (the colour indicates the wake category).
 
 ## Basic usage
 
-1. **No installation required** — just extract the ZIP wherever you like
-   and run the executable. The current release is built for windows only, but running from source is possible also on Linux, see the bottom section of this document.
+1. **No installation required** — just extract the 7z archive wherever you
+   like and run the executable (Windows 11 opens 7z files natively; on
+   Windows 10 use [7-Zip](https://www.7-zip.org/)). The current release is built for windows only, but running from source is possible also on Linux, see the bottom section of this document.
 2. Due to copyright, the tool does not ship with the chart or the satellite
    imagery — but it will download them for your personal use under the
    respective providers' terms of use.
@@ -196,13 +206,13 @@ completely free and will always remain so.
 
 בשלב הנוכחי של פיתוח התוכנה יש שתי הסתייגויות להרצה מקוד המקור:
 
-1. צריך לקחת את התיקייה <code dir="ltr">.cvfr_routemaster</code> מקובץ ה-ZIP של גרסת ה-Windows
+1. צריך לקחת את התיקייה <code dir="ltr">.cvfr_routemaster</code> מקובץ ה-7z של גרסת ה-Windows
    כדי לקבל את נתוני כיול המפות — או לכייל את המפות בעצמכם. לשם כך פותחים
    את תפריט הגדרות המפה, טוענים את קובצי המפה (או מפנים לכתובות האמיתיות
    באתר רת"א), ואז מבצעים את כיול המפה (פשוט עוקבים אחרי ההוראות שעל
    המסך). אם בוחרים בדרך הראשונה, התיקייה <code dir="ltr">.cvfr_routemaster</code> צריכה להיות
    ממוקמת ליד תיקיית המודול `cvfr_routemaster` כדי שהתוכנה תמצא את התוכן
-   שלה. אני ממליץ פשוט לקחת את התיקייה מקובץ ה-ZIP של גרסת ה-Windows
+   שלה. אני ממליץ פשוט לקחת את התיקייה מקובץ ה-7z של גרסת ה-Windows
    ולחסוך זמן.
 2. צריך ש-tesseract יהיה מותקן כדי לבצע OCR (זיהוי תווים). ב-Debian
    (וב-Ubuntu, Mint וכו') מתקינים אותו כך:
@@ -210,7 +220,7 @@ completely free and will always remain so.
    <pre dir="ltr"><code>sudo apt install tesseract-ocr tesseract-ocr-eng tesseract-ocr-heb</code></pre>
 
    אם אתם בהפצה אחרת, סביר שאתם יודעים מהן פקודות התקנת החבילות. ב-Windows
-   צריך את קובצי ההפעלה של tesseract. קובץ ה-ZIP של הגרסה כולל תיקייה
+   צריך את קובצי ההפעלה של tesseract. קובץ ה-7z של הגרסה כולל תיקייה
    בשם `tesseract` — מעתיקים אותה ליד `cvfr_routemaster`, וזהו.
 
 ודאו שכל מה שמופיע ב-`requirements.txt` מותקן בסביבה (env או venv) שלכם,
@@ -235,11 +245,18 @@ The program is written in python, so it will happily work from sources (the cvfr
 To do this, first, clone the repo.
 
 There are two caveats for running from source at this stage of the program development:
-1. You will need to take the .cvfr_routemaster folder from the windows release ZIP to obtain the map calibration data. Or you will need to calibrate the maps yourself. To do the latter, open the map settings menu, load map files (or point to the actual URLs on the CAAI site) and then perform the calibration of the map (simply follow the instructions on the screen). The .cvfr_routemaster folder must be placed next to the cvfr_routemaster module folder for the program to pick up the contents, if you opt for this route. I recommend you just take the folder from the windows release ZIP and save some time.
-2. You need tesseract installed to perform OCR. On Debian (and Ubuntu, Mint, etc), install it with: sudo apt install tesseract-ocr tesseract-ocr-eng tesseract-ocr-heb. If you are on a different distro, you probably know what the package install commands are. On windows, you need tesseract executables. The release ZIP contains a tesseract folder, copy it over next to cvfr_routemaster and you are good to go.
+1. You will need to take the .cvfr_routemaster folder from the windows release 7z archive to obtain the map calibration data. Or you will need to calibrate the maps yourself. To do the latter, open the map settings menu, load map files (or point to the actual URLs on the CAAI site) and then perform the calibration of the map (simply follow the instructions on the screen). The .cvfr_routemaster folder must be placed next to the cvfr_routemaster module folder for the program to pick up the contents, if you opt for this route. I recommend you just take the folder from the windows release 7z archive and save some time.
+2. You need tesseract installed to perform OCR. On Debian (and Ubuntu, Mint, etc), install it with: sudo apt install tesseract-ocr tesseract-ocr-eng tesseract-ocr-heb. If you are on a different distro, you probably know what the package install commands are. On windows, you need tesseract executables. The release 7z archive contains a tesseract folder, copy it over next to cvfr_routemaster and you are good to go.
 
 Ensure that you have all of the contents of requirements.txt installed in your env or venv, and then:
 
 py -m cvfr_routemaster
 
 Enjoy!
+
+---
+
+<sub>Keywords: Israel CVFR, LSA-CVFR, VFR Israel, VATSIM Israel, VATIL, CAAI CVFR chart,
+CVFR reporting points, flight planning, route planner, MSFS 2020, MSFS 2024, X-Plane,
+flight simulator · כטר"מ, אז"מ, מפת כטר"מ, נקודות דיווח, רת"א, טיסת VFR בישראל,
+סימולטור טיסה, תכנון מסלול טיסה</sub>
