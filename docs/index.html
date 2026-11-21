@@ -13,10 +13,12 @@
   <meta property="og:title" content="CVFR Route Master — Israel CVFR route planner for VATSIM">
   <meta property="og:description" content="Plan and study CVFR / LSA routes in Israel: CAAI chart + satellite imagery, automatic altitudes, live VATSIM traffic. Free and open source.">
   <meta property="og:url" content="https://cvfr-routemaster.github.io/cvfr-routemaster/">
-  <meta property="og:image" content="https://cvfr-routemaster.github.io/cvfr-routemaster/icon.png">
+  <meta property="og:image" content="https://cvfr-routemaster.github.io/cvfr-routemaster/social-preview.jpg">
+  <meta property="og:image:width" content="1280">
+  <meta property="og:image:height" content="640">
   <meta property="og:locale" content="en_US">
   <meta property="og:locale:alternate" content="he_IL">
-  <meta name="twitter:card" content="summary">
+  <meta name="twitter:card" content="summary_large_image">
 
   <script type="application/ld+json">
   {
@@ -33,7 +35,8 @@
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
     "downloadUrl": "https://github.com/cvfr-routemaster/cvfr-routemaster/releases/latest",
     "codeRepository": "https://github.com/cvfr-routemaster/cvfr-routemaster",
-    "url": "https://cvfr-routemaster.github.io/cvfr-routemaster/"
+    "url": "https://cvfr-routemaster.github.io/cvfr-routemaster/",
+    "screenshot": "https://cvfr-routemaster.github.io/cvfr-routemaster/screenshots/cvfr-map.jpg"
   }
   </script>
 
@@ -77,6 +80,14 @@
     }
     section h2 { font-size: 1.35rem; }
     section li { margin-bottom: 6px; }
+    .gallery {
+      grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    }
+    .gallery figure { margin: 0; text-align: center; }
+    .gallery img {
+      width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--border);
+    }
+    .gallery figcaption { font-size: 0.9rem; color: var(--muted); margin-top: 6px; }
     .warning {
       grid-column: 1 / -1; text-align: center; padding: 14px;
       border: 1px solid #9e6a03; background: #2b2111; border-radius: 10px;
@@ -85,7 +96,10 @@
       text-align: center; color: var(--muted); font-size: 0.9rem;
       padding: 20px 20px 40px; border-top: 1px solid var(--border);
     }
-    @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+    @media (max-width: 800px) {
+      main { grid-template-columns: 1fr; }
+      .gallery { grid-template-columns: repeat(2, 1fr); }
+    }
   </style>
 </head>
 <body>
@@ -101,6 +115,25 @@
   </header>
 
   <main>
+    <div class="gallery">
+      <figure>
+        <a href="screenshots/cvfr-map.jpg"><img src="screenshots/cvfr-map.jpg" alt="CVFR route on the CAAI CVFR chart" loading="lazy"></a>
+        <figcaption>CVFR chart · מפת כטר"מ</figcaption>
+      </figure>
+      <figure>
+        <a href="screenshots/cvfr-sat.jpg"><img src="screenshots/cvfr-sat.jpg" alt="CVFR route on satellite imagery" loading="lazy"></a>
+        <figcaption>CVFR satellite · לוויין</figcaption>
+      </figure>
+      <figure>
+        <a href="screenshots/lsa-map.jpg"><img src="screenshots/lsa-map.jpg" alt="LSA-CVFR route on the CAAI LSA chart" loading="lazy"></a>
+        <figcaption>LSA chart · מפת אז"מ</figcaption>
+      </figure>
+      <figure>
+        <a href="screenshots/lsa-sat.jpg"><img src="screenshots/lsa-sat.jpg" alt="LSA-CVFR route on satellite imagery" loading="lazy"></a>
+        <figcaption>LSA satellite · לוויין</figcaption>
+      </figure>
+    </div>
+
     <section lang="en">
       <h2>What it does</h2>
       <ul>

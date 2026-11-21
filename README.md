@@ -6,6 +6,13 @@ MSFS 2024, X-Plane and other flight simulators. Free and open source (AGPL).
 **[⬇ Download the latest release (Windows)](https://github.com/cvfr-routemaster/cvfr-routemaster/releases/latest)**
 · [Project website](https://cvfr-routemaster.github.io/cvfr-routemaster/)
 
+<p align="center">
+  <a href="docs/screenshots/cvfr-map.jpg"><img src="docs/screenshots/cvfr-map.jpg" width="24%" alt="CVFR route on the CAAI CVFR chart"></a>
+  <a href="docs/screenshots/cvfr-sat.jpg"><img src="docs/screenshots/cvfr-sat.jpg" width="24%" alt="CVFR route on satellite imagery"></a>
+  <a href="docs/screenshots/lsa-map.jpg"><img src="docs/screenshots/lsa-map.jpg" width="24%" alt="LSA-CVFR route on the CAAI LSA chart"></a>
+  <a href="docs/screenshots/lsa-sat.jpg"><img src="docs/screenshots/lsa-sat.jpg" width="24%" alt="LSA-CVFR route on satellite imagery"></a>
+</p>
+
 <div dir="rtl" lang="he">
 
 **[⬇ להורדת הגרסה האחרונה (Windows)](https://github.com/cvfr-routemaster/cvfr-routemaster/releases/latest)**
