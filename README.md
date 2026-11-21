@@ -16,6 +16,7 @@ MSFS 2024, X-Plane and other flight simulators. Free and open source (AGPL).
 <div dir="rtl" lang="he">
 
 **[⬇ להורדת הגרסה האחרונה (Windows)](https://github.com/cvfr-routemaster/cvfr-routemaster/releases/latest)**
+· [אתר הפרויקט](https://cvfr-routemaster.github.io/cvfr-routemaster/)
 
 עוזר לתכנון מסלולי כטר"מ בישראל, לשימוש בסימולטורי טיסה.
 
