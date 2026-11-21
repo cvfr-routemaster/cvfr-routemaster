@@ -88,6 +88,14 @@ htmlcov/
 scratch/
 
 # ---------------------------------------------------------------------------
+# Full-size source screenshots (~2-3 MB PNGs each). The published copies are
+# the compressed JPGs under docs/screenshots/. Originals can capture personal
+# details (e.g. Windows sign-in tooltips), so check them before re-exporting.
+# Scoped to the repo root so docs/screenshots/ stays tracked.
+# ---------------------------------------------------------------------------
+/screenshots/
+
+# ---------------------------------------------------------------------------
 # User flight-plan saves and CSV waypoint exports written via the in-app
 # "Save flight plan" / "Export waypoints to CSV" dialogs. The default save
 # location is the repo root when launching from `py -m cvfr_routemaster`,
